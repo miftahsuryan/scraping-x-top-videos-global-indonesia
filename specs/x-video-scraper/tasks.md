@@ -1,0 +1,40 @@
+# Tasks: X/Twitter Video Engagement Scraper
+
+- [x] 1. Update `AGENTS.md` with Python + Playwright context, security rules, and project layout
+  - _Requirements: 1.1, 1.3_
+- [x] 2. Create specification documents (`requirements.md`, `design.md`) in `specs/x-video-scraper/`
+  - _Requirements: 1, 2, 3, 4, 5_
+- [x] 3. Create project dependency file `requirements.txt` and template `.env.example`
+  - _Requirements: 1.1, Enterprise Standard 1_
+- [x] 4. Implement data models in `src/models.py` using Pydantic (`EngagementMetrics`, `VideoTweet`, `ScrapeReport`)
+  - _Requirements: 3.1, 4.1, 5.3_
+- [x] 5. Implement metric parsing and engagement calculation logic in `src/extractor.py`
+  - _Requirements: 3.2, 4.1_
+- [x] 6. Implement browser context initialization and session management in `src/browser.py`
+  - _Requirements: 1.1, 1.2, 1.3_
+- [x] 7. Implement scraping engine in `src/scraper.py` for Explore Indonesia & Global video searches
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.3, 4.2, 4.3_
+- [x] 8. Implement main entrypoint in `main.py` orchestrating scraping and exporting to `output/top15_videos_YYYY-MM.json`
+  - _Requirements: 5.1, 5.2, 5.3_
+- [x] 9. Create unit test suite in `tests/test_extractor.py` covering metric parsing and ranking calculation
+  - _Requirements: Enterprise Standard 4_
+- [x] 10. Update `README.md` with installation, cookie configuration, and execution instructions
+  - _Requirements: Enterprise Standard 6_
+- [x] 11. Update `requirements.md` with REQ-6 (4 Output Files) and REQ-7 (Enhanced NSFW Filter)
+  - _Requirements: 6, 7_
+- [x] 12. Update `design.md` with 4 output architecture and enhanced filtering
+  - _Requirements: 6, 7, Enterprise Standard 1-9_
+- [x] 13. Update `config.py`: tambah 4 output file patterns, `ALLOWED_VIDEO_DOMAINS`, expand `NSFW_KEYWORDS` dan `NSFW_HANDLE_PATTERNS`
+  - _Requirements: 6.1, 7.1, 7.2, 7.3_
+- [x] 14. Update `scraper.py`: tambah sensitive content check, domain validation, dan perkuat `_is_nsfw()`
+  - _Requirements: 7.3, 7.4, 7.5_
+- [x] 15. Update `main.py`: jalankan 4 scraping queries dan simpan 4 file output terpisah
+  - _Requirements: 6.1, 6.2, 6.3, 6.4_
+- [x] 16. Update `README.md`: dokumentasi 4 output files dan enhanced filtering
+  - _Requirements: Enterprise Standard 6_
+- [x] 17. Run `ruff check .` dan `pytest tests/` untuk verifikasi
+  - _Requirements: Enterprise Standard 4, 7_
+- [x] 18. Bug fix: `_check_sensitive_content()` → async function + await (menyebabkan semua tweet di-skip)
+  - _Requirements: 7.4, Enterprise Standard 2_
+- [x] 19. Bug fix: Hapus NSFW keywords yang terlalu broad (`sex`, `webcam`, `adult`, `sexy`, `bunny`, `gf`, `cam`, `live`, `show`)
+  - _Requirements: 7.1, Enterprise Standard 2_
