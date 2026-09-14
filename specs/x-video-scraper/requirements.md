@@ -1,13 +1,18 @@
-# Requirements: X/Twitter Video Engagement Scraper (Top 15 Global & Indonesia)
+# Requirements: X/Twitter Video Engagement Scraper (6 Categories, 3 Periods, 2 Locales)
 
 ## Introduction
-Fitur ini bertujuan untuk mengumpulkan (scraping) dan meranking tweet video di X (Twitter) dengan tingkat keterlibatan (engagement) tertinggi. Sistem menghasilkan 4 file output:
-- Top 15 video Indonesia bulanan (since awal bulan)
-- Top 15 video Global bulanan (since awal bulan)
-- Top 15 video Indonesia 3 hari terakhir
-- Top 15 video Global 3 hari terakhir
+Fitur ini bertujuan untuk mengumpulkan (scraping) dan meranking tweet di X (Twitter) dengan tingkat keterlibatan (engagement) tertinggi, mencakup 6 kategori konten:
+- **Engagement**: Video viral dengan tingkat engagement tinggi
+- **News**: Headlines dan berita terkini
+- **Economic**: Insight ekonomi dan pasar
+- **Social**: Isu sosial dan kesejahteraan
+- **Technology**: Tech, AI, gadget, dan startup
+- **Research**: Penelitian dan studi terbaru
 
-Total: 60 video per sesi scraping, disimpan dalam format JSON terstruktur.
+Sistem menghasilkan **36 file output** per sesi scraping:
+- 6 kategori × 3 periode (3days, weekly, monthly) × 2 locale (Indonesia, Global)
+
+Output disimpan dalam format JSON terstruktur dengan struktur folder berbeda per category dan period.
 
 ## Acceptance Criteria (EARS Format)
 
@@ -58,3 +63,39 @@ Total: 60 video per sesi scraping, disimpan dalam format JSON terstruktur.
 - **REQ-7.3**: THE SYSTEM SHALL memvalidasi `video_url` hanya berasal dari domain trusted yang terdaftar di `ALLOWED_VIDEO_DOMAINS` (misal: `video.twimg.com`). IF video_url berasal dari domain tidak dikenal, THEN video_url diabaikan.
 - **REQ-7.4**: THE SYSTEM SHALL mendeteksi sensitive content warning dari X/Twitter dengan mengecek keberadaan `div[data-testid='warningScreen']` pada tweet. IF sensitive content warning terdeteksi, THEN tweet tersebut diabaikan.
 - **REQ-7.5**: IF tweet terdeteksi sebagai NSFW berdasarkan kombinasi caption, handle, domain video, atau sensitive content warning, THEN THE SYSTEM SHALL mengabaikan tweet tersebut dari hasil scraping.
+
+### Requirement 8: 6 Categories, 3 Periods, 2 Locales
+- **REQ-8.1**: THE SYSTEM SHALL mendukung 6 kategori: `engagement`, `news`, `economic`, `social`, `technology`, `research`.
+- **REQ-8.2**: THE SYSTEM SHALL mendukung 3 periode: `3days` (3 hari terakhir), `weekly` (Senin → hari ini), `monthly` (tanggal 1 → hari ini).
+- **REQ-8.3**: THE SYSTEM SHALL mendukung 2 locale: `indonesia` (filter `lang:id`) dan `global` (tanpa filter bahasa).
+- **REQ-8.4**: Total output per sesi scraping adalah 36 file (6 × 3 × 2).
+- **REQ-8.5**: List categories dan periods SHALL didefinisikan di `config.py` untuk memudahkan penambahan di masa depan.
+
+### Requirement 9: Custom Keywords via CLI
+- **REQ-9.1**: THE SYSTEM SHALL mendukung flag CLI `--keywords-id` untuk custom keywords Indonesia.
+- **REQ-9.2**: THE SYSTEM SHALL mendukung flag CLI `--keywords-gl` untuk custom keywords Global.
+- **REQ-9.3**: Custom keywords SHALL di-parse dengan format comma-separated, support multi-word dengan quote (misal: `"berita terkini,update,breaking news"`).
+- **REQ-9.4**: Keyword match SHALL case-insensitive (match tanpa peduli huruf besar/kecil).
+- **REQ-9.5**: Match logic SHALL menggunakan `any(keyword in caption.lower())` (OR logic — match jika salah satu keyword cocok).
+- **REQ-9.6**: Custom keywords SHALL digabung dengan default keywords (gabungan, bukan mengganti).
+- **REQ-9.7**: Jika user tidak input custom keyword, THEN sistem menggunakan default keywords per category.
+
+### Requirement 10: Filtering & Query
+- **REQ-10.1**: Query SHALL menggunakan `filter:media` (video + image/infographic).
+- **REQ-10.2**: Query SHALL mengecualikan retweets dengan `-is:retweet`.
+- **REQ-10.3**: `min_faves` untuk periode `3days` adalah 500 (Indonesia) dan 500 (Global).
+- **REQ-10.4**: `min_faves` untuk periode `weekly` dan `monthly` adalah 1000 (Indonesia) dan 1000 (Global).
+- **REQ-10.5**: Query Indonesia SHALL menambahkan `lang:id`.
+
+### Requirement 11: Output Structure
+- **REQ-11.1**: Output SHALL disimpan dalam struktur folder: `output/{locale}/{category}/{category}_{period}_{date}.json`.
+- **REQ-11.2**: Filename format: `{category}_{period}_{date}.json`.
+  - 3days: `engagement_3days_2026-09-14.json`
+  - weekly: `engagement_week_2026-W37.json`
+  - monthly: `engagement_month_2026-09.json`
+- **REQ-11.3**: THE SYSTEM SHALL menghasilkan `index.json` di root folder `output/` yang berisi list semua results per run.
+- **REQ-11.4**: `index.json` SHALL di-overwrite setiap run (bukan append).
+
+### Requirement 12: Default Behavior
+- **REQ-12.1**: Jika user menjalankan `python main.py` tanpa flag, THEN sistem SHALL scrape semua period (`all`), semua category (`all`), semua locale.
+- **REQ-12.2**: Default keywords per category SHALL didefinisikan di `config.py` dalam format list.

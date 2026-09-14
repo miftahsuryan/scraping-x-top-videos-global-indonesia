@@ -38,3 +38,37 @@
   - _Requirements: 7.4, Enterprise Standard 2_
 - [x] 19. Bug fix: Hapus NSFW keywords yang terlalu broad (`sex`, `webcam`, `adult`, `sexy`, `bunny`, `gf`, `cam`, `live`, `show`)
   - _Requirements: 7.1, Enterprise Standard 2_
+- [x] 20. Update `requirements.md` with REQ-8 (6 Categories, 3 Periods, 2 Locales), REQ-9 (Custom Keywords), REQ-10 (Filtering), REQ-11 (Output Structure), REQ-12 (Default Behavior)
+  - _Requirements: 8, 9, 10, 11, 12_
+- [x] 21. Update `design.md` with new architecture (CLI, default keywords, query construction, folder structure)
+  - _Requirements: 8, 9, 10, 11, 12, Enterprise Standard 1-9_
+- [x] 22. Rewrite `config.py`: `DEFAULT_KEYWORDS_ID` (6 categories, list format), `DEFAULT_KEYWORDS_GL` (6 categories, list format), `CATEGORIES`, `PERIODS`, `MIN_FAVES` dict, `parse_keywords()` function
+  - _Requirements: 8.1, 8.2, 8.5, 9.7, 12.2_
+- [x] 23. Update `models.py`: Add `period: str`, `category: str`, `locale: str` fields ke `ScrapeReport`; ganti `indonesia_explore`/`global_explore` dengan `tweets: List[VideoTweet]`
+  - _Requirements: 11.1, 11.2_
+- [x] 24. Update `scraper.py`: Tambah `_matches_custom_keywords(caption, keywords) -> bool` dengan case-insensitive any-match logic
+  - _Requirements: 9.4, 9.5, 9.6_
+- [x] 25. Update `scraper.py`: Update `_async_extract_tweet()` untuk mendukung `filter:media` (video + image) — validasi ada video atau image di tweet
+  - _Requirements: 10.1_
+- [x] 26. Update `scraper.py`: Update `scrape_top_videos()` — dynamic limit (5 untuk 3days, 10 untuk weekly/monthly), dynamic `min_faves` per period, exclude retweets
+  - _Requirements: 8.1, 10.2, 10.3, 10.4_
+- [x] 27. Rewrite `main.py`: CLI parser (`--period`, `--category`, `--keywords-id`, `--keywords-gl`) dengan default behavior (all period, all category)
+  - _Requirements: 9.1, 9.2, 9.7, 12.1_
+- [x] 28. Rewrite `main.py`: Loop periods × categories × locales, build query per kombinasi (dynamic keywords + filters), scrape, save ke `output/{locale}/{category}/{category}_{period}_{date}.json`
+  - _Requirements: 8.1, 8.2, 8.3, 10.1, 10.2, 11.1, 11.2_
+- [x] 29. Rewrite `main.py`: Generate `output/index.json` (overwrite setiap run) dengan list semua results
+  - _Requirements: 11.3, 11.4_
+- [x] 30. Update `main.py`: Folder structure creation `output/{locale}/{category}/` secara otomatis
+  - _Requirements: 5.2, 11.1_
+- [x] 31. Update `README.md`: CLI usage examples, custom keywords guide, output structure, multiple categories
+  - _Requirements: Enterprise Standard 6_
+- [x] 32. Create `docs/USAGE.md`: Quick Start, CLI Flags, Custom Keywords, Multiple Categories, Period Options, Examples
+  - _Requirements: Enterprise Standard 6_
+- [x] 33. Create `docs/FAQ.md`: Custom keywords FAQ, Multiple categories FAQ, Output check FAQ, Filter explanation FAQ
+  - _Requirements: Enterprise Standard 6_
+- [x] 34. Update unit tests: tambah test untuk `parse_keywords()`, `_matches_custom_keywords()`, default keywords validation
+  - _Requirements: Enterprise Standard 4_
+- [x] 35. Run `ruff check .` dan `pytest tests/` untuk verifikasi
+  - _Requirements: Enterprise Standard 4, 7_
+- [ ] 36. Push ke GitHub
+  - _Requirements: Enterprise Standard 9_

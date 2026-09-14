@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>X Video Scraper Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <header class="header">
+      <h1>X/Twitter Video Scraper</h1>
+      <span class="badge">Local Only</span>
+      <span class="formula">Score = Likes + Reposts + Views</span>
+    </header>
+
+    <main class="main">
+      <section class="panel run-panel">
+        <h2>Start Scraping</h2>
+        <form id="run-form">
+          <div class="form-group">
+            <label>Periods</label>
+            <div class="checkbox-group" id="periods-group"></div>
+          </div>
+          <div class="form-group">
+            <label>Categories</label>
+            <div class="checkbox-group" id="categories-group"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="keywords-id">Keywords (ID)</label>
+              <input type="text" id="keywords-id" placeholder="e.g. berita terkini,ekonomi">
+            </div>
+            <div class="form-group">
+              <label for="keywords-gl">Keywords (GL)</label>
+              <input type="text" id="keywords-gl" placeholder="e.g. breaking news,economy">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="headless" checked> Headless Mode
+            </label>
+          </div>
+          <button type="submit" id="start-btn">Start Scraping</button>
+        </form>
+        <div id="form-error" class="error hidden"></div>
+      </section>
+
+      <section class="panel status-panel">
+        <h2>Current Run</h2>
+        <div id="status-content">
+          <p class="idle-text">No active job.</p>
+        </div>
+      </section>
+
+      <section class="panel reports-panel">
+        <h2>Reports</h2>
+        <div class="filters">
+          <select id="filter-locale">
+            <option value="">All Locales</option>
+            <option value="indonesia">Indonesia</option>
+            <option value="global">Global</option>
+          </select>
+          <select id="filter-category">
+            <option value="">All Categories</option>
+          </select>
+          <select id="filter-period">
+            <option value="">All Periods</option>
+            <option value="3days">3 Days</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div id="reports-list" class="reports-list">
+          <p class="empty-text">No reports available.</p>
+        </div>
+      </section>
+
+      <section class="panel detail-panel hidden" id="detail-panel">
+        <h2>Report Detail</h2>
+        <button id="close-detail" class="close-btn">&times;</button>
+        <div id="report-detail"></div>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

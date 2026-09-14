@@ -17,7 +17,7 @@ class VideoTweet(BaseModel):
         default=None, description="Direct URL file video / stream jika terdeteksi"
     )
     caption: str = Field(
-        default="", description="Teks atau caption utama dari tweet yang memuat video"
+        default="", description="Teks atau caption utama dari tweet"
     )
     username: str = Field(default="", description="Display name pemilik tweet")
     handle: str = Field(
@@ -30,6 +30,9 @@ class VideoTweet(BaseModel):
 
 
 class ScrapeReport(BaseModel):
+    period: str = Field(..., description="Periode scraping (3days, weekly, monthly)")
+    category: str = Field(..., description="Kategori konten (engagement, news, economic, social, technology, research)")
+    locale: str = Field(..., description="Lokalitas (indonesia, global)")
     scraped_date: str = Field(..., description="Tanggal target scraping (YYYY-MM-DD)")
     scraped_at: str = Field(..., description="Waktu eksekusi scraping (ISO 8601)")
     formula: str = Field(
@@ -37,11 +40,8 @@ class ScrapeReport(BaseModel):
         description="Formula penghitungan ranking keterlibatan",
     )
     total_items: int = Field(
-        default=20, description="Total video tweet yang berhasil dikumpulkan"
+        default=0, description="Total tweet yang berhasil dikumpulkan"
     )
-    indonesia_explore: list[VideoTweet] = Field(
-        default_factory=list, description="Top 15 video tweet dari Explore Indonesia"
-    )
-    global_explore: list[VideoTweet] = Field(
-        default_factory=list, description="Top 15 video tweet dari Explore Global"
+    tweets: list[VideoTweet] = Field(
+        default_factory=list, description="Daftar tweet terurut berdasarkan engagement score"
     )

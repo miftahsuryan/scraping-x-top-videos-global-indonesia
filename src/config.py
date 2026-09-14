@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 from dotenv import load_dotenv
 
@@ -17,10 +18,6 @@ CF_CLEARANCE = os.getenv("CF_CLEARANCE", "")
 
 SCRAPING_DATE_FORMAT = "%Y-%m-%d"
 OUTPUT_DIR = "output"
-OUTPUT_FILE_PATTERN_MONTHLY_ID = "top15_indonesia_monthly_{}.json"
-OUTPUT_FILE_PATTERN_MONTHLY_GL = "top15_global_monthly_{}.json"
-OUTPUT_FILE_PATTERN_3DAYS_ID = "top15_indonesia_3days_{}.json"
-OUTPUT_FILE_PATTERN_3DAYS_GL = "top15_global_3days_{}.json"
 
 BROWSER_VIEWPORT_WIDTH = 1280
 BROWSER_VIEWPORT_HEIGHT = 800
@@ -32,8 +29,139 @@ BROWSER_USER_AGENT = (
 BROWSER_LOCALE = "en-US"
 
 MAX_SCROLLS = 12
-SCRAPE_LIMIT = 15
-MIN_ENGAGEMENT_SCORE = 5000
+
+CATEGORIES: list[str] = [
+    "engagement", "news", "economic", "social", "technology", "research", "business", "social_media",
+]
+
+PERIODS: list[str] = ["3days", "weekly", "monthly"]
+
+MIN_FAVES: dict[str, int] = {
+    "3days": 500,
+    "weekly": 1000,
+    "monthly": 1000,
+}
+
+SCRAPE_LIMIT: dict[str, int] = {
+    "3days": 5,
+    "weekly": 10,
+    "monthly": 10,
+}
+
+DEFAULT_KEYWORDS_ID: dict[str, list[str]] = {
+    "engagement": [
+        "heboh", "geger", "gempar", "syok", "kaget",
+        "ramai dibicarakan", "ramai diperbincangkan", "bikin heboh",
+        "jadi sorotan", "curi perhatian", "banjir komentar",
+        "disorot netizen", "jadi bahan obrolan", "netizen heboh",
+        "bikin geger", "tak disangka", "mengejutkan publik", "gempar netizen",
+    ],
+    "news": [
+        "berita terkini", "kabar terbaru", "info terkini", "kabar terhangat",
+        "berita hari ini", "berita mengejutkan", "update terbaru",
+        "kabar duka", "kabar gembira", "peristiwa terkini", "kejadian terbaru",
+        "laporan terbaru", "sorotan berita", "headline hari ini",
+        "isu terkini", "insiden terbaru", "berita nasional", "kronologi kejadian",
+    ],
+    "economic": [
+        "pasar saham", "ihsg", "rupiah melemah", "rupiah menguat",
+        "harga naik", "harga turun", "harga bbm", "inflasi",
+        "resesi ekonomi", "bi rate", "suku bunga", "investasi saham",
+        "bursa efek", "kripto indonesia", "harga emas", "nilai tukar",
+        "utang negara", "apbn", "pajak naik", "subsidi bbm",
+        "harga sembako", "daya beli", "pertumbuhan ekonomi",
+    ],
+    "social": [
+        "bansos", "kemiskinan", "kesejahteraan sosial", "unjuk rasa",
+        "demo buruh", "bantuan sosial", "korban bencana", "penggalangan dana",
+        "aksi solidaritas", "anak jalanan", "kelaparan", "gizi buruk",
+        "pengungsi", "korban kekerasan", "hak asasi manusia", "diskriminasi",
+        "kesenjangan sosial", "gerakan sosial", "relawan bencana", "donasi bencana",
+    ],
+    "technology": [
+        "teknologi terbaru", "aplikasi lokal", "startup lokal",
+        "inovasi anak bangsa", "hp terbaru", "gawai terbaru",
+        "kecerdasan buatan", "robot canggih", "aplikasi buatan indonesia",
+        "perusahaan rintisan", "teknologi ai", "inovasi digital",
+        "transformasi digital", "produk teknologi baru", "gadget terbaru",
+        "peluncuran aplikasi", "startup teknologi", "riset teknologi",
+    ],
+    "research": ["penelitian", "riset", "studi", "discovery"],
+    "business": [
+        "bisnis", "perusahaan", "ceo perusahaan", "direktur utama",
+        "merger perusahaan", "akuisisi bisnis", "ipo saham",
+        "pendapatan perusahaan", "laba perusahaan", "rugi perusahaan",
+        "phk massal", "kemitraan bisnis", "waralaba", "umkm naik kelas",
+        "wirausaha muda", "pengusaha sukses", "strategi bisnis",
+        "ekspansi usaha", "brand lokal", "bisnis online",
+        "jualan online", "bangkrut",
+    ],
+    "social_media": [
+        "media sosial", "fitur baru instagram", "update tiktok",
+        "algoritma twitter", "x down", "instagram down",
+        "kebijakan media sosial", "konten kreator", "monetisasi konten",
+        "centang biru", "verifikasi akun", "akun diblokir",
+        "tren tiktok", "live streaming", "influencer marketing",
+        "platform media sosial", "update algoritma", "fitur terbaru medsos",
+        "meta rilis fitur", "youtube shorts",
+    ],
+}
+
+DEFAULT_KEYWORDS_GL: dict[str, list[str]] = {
+    "engagement": [
+        "went viral", "blew up", "buzzing", "sensation",
+        "can't stop watching", "took the internet by storm",
+        "everyone's talking about", "internet is obsessed", "gone viral",
+        "viral moment", "broke the internet", "stopped scrolling",
+        "can't unsee", "viral sensation", "jaw-dropping", "mind-blowing",
+        "instant hit",
+    ],
+    "news": [
+        "breaking news", "headlines", "just in", "developing story",
+        "top story", "news alert", "live update", "world news",
+        "latest news", "reports say", "according to reports",
+        "major incident", "this just happened", "exclusive report",
+        "confirmed reports",
+    ],
+    "economic": [
+        "stock market", "wall street", "inflation", "recession",
+        "interest rate", "federal reserve", "nasdaq", "s&p 500",
+        "market crash", "crypto crash", "market rally", "economic downturn",
+        "gdp growth", "trade war", "oil prices", "gold prices",
+        "jobs report", "market volatility", "bear market", "bull market",
+    ],
+    "social": [
+        "welfare", "food bank", "protest", "homelessness",
+        "wage strike", "human rights", "charity", "relief fund",
+        "refugees", "social justice", "inequality", "activism",
+        "grassroots movement", "community support", "disaster relief",
+        "fundraising campaign", "volunteers", "mutual aid",
+    ],
+    "technology": [
+        "tech news", "ai breakthrough", "new gadget", "startup funding",
+        "app launch", "tech giant", "silicon valley", "product launch",
+        "software update", "tech innovation", "ai model", "chip technology",
+        "venture capital", "tech industry", "smart device",
+        "next-gen tech", "robotics breakthrough",
+    ],
+    "research": ["research", "study", "discovery"],
+    "business": [
+        "business", "CEO resigns", "CEO steps down", "merger",
+        "acquisition", "IPO", "quarterly earnings", "company profits",
+        "layoffs", "business partnership", "franchise", "small business",
+        "entrepreneur", "business strategy", "corporate expansion",
+        "brand deal", "e-commerce", "business deal", "corporate news",
+        "retail", "supply chain", "bankruptcy",
+    ],
+    "social_media": [
+        "social media", "new feature", "algorithm change", "platform outage",
+        "app update", "blue checkmark", "account verification", "content creator",
+        "creator economy", "monetization update", "community guidelines",
+        "account banned", "live streaming", "influencer marketing",
+        "platform update", "app down", "TikTok ban", "Meta announcement",
+        "YouTube Shorts", "X update",
+    ],
+}
 
 NSFW_KEYWORDS = frozenset([
     "porn", "xxx", "nude", "naked", "nsfw",
@@ -68,73 +196,16 @@ ALLOWED_VIDEO_DOMAINS = frozenset([
     "video.twimg.com",
 ])
 
-ALLOWED_TOPICS: dict[str, frozenset[str]] = {
-    "highlight": frozenset([
-        "viral", "trending", "breaking", "happening", "just in",
-        "shocking", "unbelievable", "insane", "crazy", "epic",
-        "legendary", "historic", "record", "first time", "massive",
-        "huge", "explosion", "eruption", "disaster", "accident",
-        "rescue", "survive", "miracle", "catch", "goal", "slam",
-        "knockout", "champion", "final", "win", "score",
-        "highlight", "replay", "moment", "reaction",
-        "terjadi", "heboh", "mengejutkan", "gila", "keren",
-        "legendaris", "bersejarah", "rekor", "pertama kali",
-        "ledakan", "bencana", "kecelakaan", "selamat",
-        "mukjizat", "gol", "juara", "menang", "skor",
-        " momen", "reaksi",
-    ]),
-    "culture": frozenset([
-        "music", "movie", "film", "concert", "festival", "art",
-        "dance", "fashion", "food", "cook", "recipe", "restaurant",
-        "tradition", "ceremony", "holiday", "celebrate", "k-pop",
-        "anime", "manga", "game", "gaming", "esport", "sport",
-        "football", "soccer", "basketball", "nba", "nfl", "cricket",
-        "tennis", "olympic", "world cup", "premier league", "liga",
-        "chef", "cuisine", "baking", "street food", "viral food",
-        "celebrity", "actor", "actress", "singer", "rapper",
-        "album", "song", "track", "concert", "tour",
-        "musik", "konser", "seni", "tari", "makanan", "masak",
-        "resep", "restoran", "tradisi", "upacara", "liburan",
-        "selebrasi", "game", "gaming", "esport", "olahraga",
-        "sepak bola", "basket", "liga", "kuliner", "artis",
-        "penyanyi", "rapper", "album", "lagu", "film",
-    ]),
-    "social": frozenset([
-        "protest", "rally", "march", "activist", "movement",
-        "human rights", "climate", "environment", "education",
-        "health", "mental health", "community", "volunteer",
-        "charity", "donation", "rescue", "solidarity",
-        "election", "vote", "politics", "policy", "government",
-        "parliament", "congress", "president", "minister",
-        "society", "culture", "heritage", "identity",
-        "immigrant", "refugee", "equality", "justice",
-        "security", "conflict", "peace", "humanitarian",
-        "protes", "unjuk rasa", "aktivis", "gerakan",
-        "hak asasi", "iklim", "lingkungan", "pendidikan",
-        "kesehatan", "komunitas", "relawan", "amal", "donasi",
-        "pilkada", "pemilu", "politik", "kebijakan",
-        "pemerintah", "parlemen", "presiden", "menteri",
-        "masyarakat", "budaya", "warisan", "imigran",
-        "pengungsi", "kesetaraan", "keadilan", "keamanan",
-        "konflik", "perdamaian",
-    ]),
-    "technology": frozenset([
-        "ai", "artificial intelligence", "machine learning", "robot",
-        "tech", "gadget", "smartphone", "iphone", "android",
-        "software", "hardware", "startup", "app", "coding",
-        "programming", "python", "javascript", "blockchain",
-        "crypto", "bitcoin", "ethereum", "nft", "metaverse",
-        "spacex", "nasa", "rocket", "satellite", "starlink",
-        "space", "mars", "launch", "orbit", "renewable",
-        "solar", "ev", "electric car", "tesla", "battery",
-        "quantum", "biotech", "fintech", "5g", "wifi",
-        "hack", "cyber", "data", "cloud", "server",
-        "kecerdasan buatan", "teknologi", "perangkat lunak",
-        "perangkat keras", "pemrograman", "kripto",
-        "luar angkasa", "energi terbarukan", "mobil listrik",
-        "baterai", "kuantum", "bioteknologi", "siber",
-    ]),
-}
 
-QUERY_INDONESIA = "indonesia filter:videos min_faves:5000 -is:reply"
-QUERY_GLOBAL = "filter:videos min_faves:10000 -is:reply"
+def parse_keywords(raw: str | None) -> list[str]:
+    """Parse comma-separated keywords, support multi-word dengan quote.
+
+    Contoh:
+        'berita,ekonomi' → ['berita', 'ekonomi']
+        '"breaking news",update' → ['breaking news', 'update']
+    """
+    if not raw:
+        return []
+    pattern = r'"([^"]*)"|(\S+)'
+    matches = re.findall(pattern, raw)
+    return [m[0] or m[1] for m in matches]
