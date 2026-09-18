@@ -193,4 +193,73 @@ async def _async_extract_tweet(article) -> dict | None:
         "handle": handle,
         "posted_at": posted_at,
         "engagement": eng,
+        "source": "search",
     }
+
+
+async def scrape_explore_for_you(
+    page: Page,
+    limit: int = 5,
+    max_scrolls: int = MAX_SCROLLS,
+) -> list[VideoTweet]:
+    """Scrape top tweets from X Explore For You tab, filtered for quality and NSFW content."""
+    explore_url = "https://x.com/explore"
+    print("[Scraper] Mode: Explore For You")
+    print(f"[Scraper] URL: {explore_url}")
+
+    try:
+        await page.goto(explore_url, wait_until="domcontentloaded", timeout=45000)
+        await asyncio.sleep(4)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Navigation warning: %s", e)
+
+    candidates: list[VideoTweet] = []
+    seen_urls: set[str] = set()
+
+    for scroll_idx in range(max_scrolls):
+        articles = await page.locator("article[data-testid='tweet']").all()
+        print(
+            f"[Scraper] Scroll #{scroll_idx + 1} - Mendeteksi {len(articles)} tweet di viewport..."
+        )
+
+        for article in articles:
+            try:
+                if await _check_sensitive_content(article):
+                    logger.info("Filtered sensitive content")
+                    continue
+
+                data = await _async_extract_tweet(article)
+                if data is None:
+                    continue
+
+                if data["tweet_url"] in seen_urls:
+                    continue
+                seen_urls.add(data["tweet_url"])
+
+                if _is_nsfw(data["caption"], data["handle"]):
+                    logger.info("Filtered NSFW: %s", data["tweet_url"])
+                    continue
+
+                if not _validate_media(data.get("video_url")):
+                    logger.info("Filtered untrusted domain: %s", data["tweet_url"])
+                    continue
+
+                data["source"] = "explore"
+                candidates.append(VideoTweet(**data))
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Error processing tweet: %s", e)
+                continue
+
+        await page.mouse.wheel(0, 2500)
+        await asyncio.sleep(2.5)
+
+        if len(candidates) >= limit * 2:
+            break
+
+    candidates.sort(key=lambda t: t.engagement.total_score, reverse=True)
+    top_results = candidates[:limit]
+    print(
+        f"[Scraper] Berhasil memfilter {len(top_results)} tweet teratas "
+        f"dari total {len(candidates)} kandidat."
+    )
+    return top_results

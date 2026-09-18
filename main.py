@@ -25,13 +25,15 @@ from src.config import (
     parse_keywords,
 )
 from src.models import ScrapeReport
-from src.scraper import scrape_top_videos
+from src.scraper import scrape_explore_for_you, scrape_top_videos
 
 
 def get_since_date(period: str) -> str:
     """Calculate since_date based on period."""
     today = date.today()  # noqa: DTZ011
-    if period == "3days":
+    if period == "1day":
+        return (today - timedelta(days=1)).strftime("%Y-%m-%d")
+    elif period == "3days":
         return (today - timedelta(days=3)).strftime("%Y-%m-%d")
     elif period == "weekly":
         days_since_monday = today.weekday()
@@ -44,7 +46,7 @@ def get_since_date(period: str) -> str:
 def get_date_label(period: str) -> str:
     """Get date label for filename based on period."""
     today = date.today()  # noqa: DTZ011
-    if period == "3days":
+    if period == "1day" or period == "3days":
         return today.strftime("%Y-%m-%d")
     elif period == "weekly":
         iso_cal = today.isocalendar()
@@ -182,22 +184,114 @@ async def run_scraper(
     print("=" * 60)
 
 
+async def run_explore_scraper(
+    periods: list[str],
+    headless: bool = True,
+    limit: int = 10,
+):
+    print("=" * 60)
+    print("X/Twitter Video Scraper — EXPLORE MODE")
+    print(f"Periods: {', '.join(periods)}")
+    print("Source: Explore For You (Random Viral Content)")
+    print("Formula: Likes + Reposts + Views")
+    print("=" * 60)
+
+    output_dir = Path(OUTPUT_DIR)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    all_results: list[dict] = []
+    total_tweets = 0
+
+    async with async_playwright() as p:
+        browser, context = await init_browser_context(p, headless=headless)
+        page = await context.new_page()
+
+        task_num = 0
+        total_tasks = len(periods)
+
+        for task_num, period in enumerate(periods, start=1):
+            since_date = get_since_date(period)
+            date_label = get_date_label(period)
+
+            print(f"\n[{task_num}/{total_tasks}] Explore For You | {period}")
+
+            tweets = await scrape_explore_for_you(page, limit=limit, max_scrolls=MAX_SCROLLS)
+            print(f"  Scraped: {len(tweets)} tweets")
+
+            tweets.sort(key=lambda t: t.engagement.total_score, reverse=True)
+            top_tweets = tweets[:limit]
+
+            report = ScrapeReport(
+                period=period,
+                category="explore",
+                locale="mixed",
+                scraped_date=since_date,
+                scraped_at=datetime.now(timezone.utc).isoformat(),
+                formula="likes + reposts + views",
+                mode="explore",
+                total_items=len(top_tweets),
+                tweets=top_tweets,
+            )
+
+            folder = output_dir / "explore"
+            folder.mkdir(parents=True, exist_ok=True)
+            filename = f"explore_{period}_{date_label}.json"
+            filepath = folder / filename
+            write_report(filepath, report)
+
+            total_tweets += len(top_tweets)
+            print(f"  → {len(top_tweets)} tweets saved to {filepath}")
+
+            all_results.append({
+                "locale": "mixed",
+                "category": "explore",
+                "period": period,
+                "mode": "explore",
+                "filename": f"explore/{filename}",
+                "total_items": len(top_tweets),
+                "scraped_at": datetime.now(timezone.utc).isoformat(),
+            })
+
+        await browser.close()
+
+    index = {
+        "run_date": datetime.now(timezone.utc).isoformat(),
+        "mode": "explore",
+        "results": all_results,
+    }
+    index_path = output_dir / "index.json"
+    with open(index_path, "w", encoding="utf-8") as f:  # noqa: ASYNC230
+        json.dump(index, f, ensure_ascii=False, indent=2)
+
+    print("\n" + "=" * 60)
+    print(f"SELESAI! Total {total_tweets} tweets tersimpan dalam {len(all_results)} files.")
+    print(f"Index: {index_path.resolve()}")
+    print("=" * 60)
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="X/Twitter Video Scraper — 6 Categories, 3 Periods, 2 Locales"
+        description="X/Twitter Video Scraper — Explore Mode Default (4 Periods), Search Mode Available"
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="explore",
+        choices=["search", "explore"],
+        help="Mode scraping: explore (halaman Explore For You / random viral, default) atau search (berdasarkan kategori/keywords)",
     )
     parser.add_argument(
         "--period",
         type=str,
         default="all",
-        choices=["3days", "weekly", "monthly", "all"],
-        help="Periode scraping: 3days, weekly, monthly, all (default: all)",
+        choices=["1day", "3days", "weekly", "monthly", "all"],
+        help="Periode scraping: 1day, 3days, weekly, monthly, all (default: all)",
     )
     parser.add_argument(
         "--category",
         type=str,
         default="all",
-        help="Kategori: engagement,news,economic,social,technology,research,all (default: all)",
+        help="Kategori: engagement,news,economic,social,technology,research,business,social_media,all (default: all)",
     )
     parser.add_argument(
         "--keywords-id",
@@ -216,6 +310,12 @@ def main():
         action="store_true",
         help="Buka browser secara visual (debugging)",
     )
+    parser.add_argument(
+        "--explore-limit",
+        type=int,
+        default=10,
+        help="Jumlah tweet untuk mode explore (default: 10)",
+    )
 
     args = parser.parse_args()
     headless = HEADLESS and not args.no_headless
@@ -224,6 +324,14 @@ def main():
         periods = PERIODS
     else:
         periods = [args.period]
+
+    if args.mode == "explore":
+        asyncio.run(run_explore_scraper(
+            periods=periods,
+            headless=headless,
+            limit=args.explore_limit,
+        ))
+        return
 
     if args.category == "all":
         categories = CATEGORIES

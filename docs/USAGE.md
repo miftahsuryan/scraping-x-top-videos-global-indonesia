@@ -3,17 +3,17 @@
 ## Quick Start
 
 ```bash
-# Default: semua period, semua category, semua locale
+# Default: Explore mode, semua period
 python main.py
 
+# Explore mode dengan period tertentu
+python main.py --period 1day
+
+# Search mode dengan category
+python main.py --mode search --category news
+
 # Dengan custom keywords
-python main.py --category news --keywords-id "berita terkini" --keywords-gl "breaking news"
-
-# Period tertentu
-python main.py --period 3days
-
-# Category tertentu
-python main.py --category news,economic
+python main.py --mode search --category news --keywords-id "berita terkini" --keywords-gl "breaking news"
 
 # Debugging (browser visible)
 python main.py --no-headless
@@ -23,11 +23,47 @@ python main.py --no-headless
 
 | Flag | Description | Default | Contoh |
 |---|---|---|---|
-| `--period` | Periode waktu | `all` | `3days`, `weekly`, `monthly`, `all` |
-| `--category` | Kategori konten | `all` | `engagement`, `news`, `economic`, `social`, `technology`, `research`, `business`, `social_media`, `all` |
-| `--keywords-id` | Custom keywords Indonesia | Default per category | `"berita,ekonomi"` |
-| `--keywords-gl` | Custom keywords Global | Default per category | `"news,economy"` |
+| `--mode` | Mode scraping | `explore` | `explore`, `search` |
+| `--period` | Periode waktu | `all` | `1day`, `3days`, `weekly`, `monthly`, `all` |
+| `--category` | Kategori konten (search mode) | `all` | `engagement`, `news`, `economic`, `social`, `technology`, `research`, `business`, `social_media`, `all` |
+| `--keywords-id` | Custom keywords Indonesia | Default per kategori | `"berita,ekonomi"` |
+| `--keywords-gl` | Custom keywords Global | Default per kategori | `"news,economy"` |
 | `--no-headless` | Tampilkan browser | `false` | Flag tanpa value |
+| `--explore-limit` | Jumlah tweet explore | `10` | Angka integer |
+
+## Mode Operasi
+
+### Explore Mode (Default)
+Scrape konten viral dari halaman **Explore For You** di X/Twitter. Tidak memerlukan kategori atau keyword.
+
+```bash
+# Semua periode
+python main.py
+
+# Periode tertentu
+python main.py --period 1day
+python main.py --period 3days
+python main.py --period weekly
+python main.py --period monthly
+
+# Dengan limit custom
+python main.py --period 3days --explore-limit 20
+```
+
+### Search Mode
+Scrape berdasarkan **kategori dan keyword** dari hasil pencarian X/Twitter.
+
+```bash
+# Semua kategori
+python main.py --mode search
+
+# Kategori tertentu
+python main.py --mode search --category news
+python main.py --mode search --category news,economic,social
+
+# Dengan custom keywords
+python main.py --mode search --category news --keywords-id "berita terkini" --keywords-gl "breaking news"
+```
 
 ## Custom Keywords
 
@@ -47,27 +83,28 @@ python main.py --no-headless
 ### Contoh
 ```bash
 # Single keyword
-python main.py --category news --keywords-id "berita"
+python main.py --mode search --category news --keywords-id "berita"
 
 # Multiple keywords
-python main.py --category news --keywords-id "berita,update,terkini"
+python main.py --mode search --category news --keywords-id "berita,update,terkini"
 
 # Multi-word keywords
-python main.py --category news --keywords-id "berita terkini,kabar terbaru"
+python main.py --mode search --category news --keywords-id "berita terkini,kabar terbaru"
 
 # Mixed
-python main.py --category news,economic --keywords-id "berita,ekonomi" --keywords-gl "news,economy"
+python main.py --mode search --category news,economic --keywords-id "berita,ekonomi" --keywords-gl "news,economy"
 ```
 
 ## Period Options
 
-| Period | since_date | Limit | min_faves |
-|---|---|---|---|
-| `3days` | Hari ini - 3 hari | 5 | 500 |
-| `weekly` | Senin → hari ini | 10 | 1000 |
-| `monthly` | Tanggal 1 → hari ini | 10 | 1000 |
+| Period | since_date | Limit | min_faves | Contoh Filename |
+|---|---|---|---|---|
+| `1day` | Hari ini - 1 hari | 10 | 100 | `explore_1day_2026-09-18.json` |
+| `3days` | Hari ini - 3 hari | 10 | 500 | `explore_3days_2026-09-18.json` |
+| `weekly` | Senin -> hari ini | 10 | 1000 | `explore_weekly_2026-W38.json` |
+| `monthly` | Tanggal 1 -> hari ini | 10 | 1000 | `explore_monthly_2026-09.json` |
 
-## Category Options
+## Category Options (Search Mode)
 
 | Category | Default Keywords (ID) | Default Keywords (GL) |
 |---|---|---|
@@ -82,44 +119,54 @@ python main.py --category news,economic --keywords-id "berita,ekonomi" --keyword
 
 ## Output Structure
 
+### Explore Mode
 ```
-output/
-├── index.json
-├── indonesia/
-│   ├── engagement/
-│   │   ├── engagement_3days_2026-09-14.json
-│   │   ├── engagement_week_2026-W37.json
-│   │   └── engagement_month_2026-09.json
-│   ├── news/
-│   │   ├── news_3days_2026-09-14.json
-│   │   ├── news_week_2026-W37.json
-│   │   └── news_month_2026-09.json
-│   ├── economic/
-│   ├── social/
-│   ├── technology/
-│   ├── research/
-│   ├── business/
-│   └── social_media/
-└── global/
-    ├── engagement/
-    ├── news/
-    ├── economic/
-    ├── social/
-    ├── technology/
-    ├── research/
-    ├── business/
-    └── social_media/
+OUTPUT-X/
+  index.json
+  explore/
+    explore_1day_2026-09-18.json
+    explore_3days_2026-09-18.json
+    explore_weekly_2026-W38.json
+    explore_monthly_2026-09.json
+```
+
+### Search Mode
+```
+OUTPUT-X/
+  index.json
+  indonesia/
+    engagement/
+      engagement_3days_2026-09-14.json
+      engagement_weekly_2026-W38.json
+      engagement_monthly_2026-09.json
+    news/
+    economic/
+    social/
+    technology/
+    research/
+    business/
+    social_media/
+  global/
+    engagement/
+    news/
+    economic/
+    social/
+    technology/
+    research/
+    business/
+    social_media/
 ```
 
 ## Filename Format
 
 | Period | Filename | Contoh |
 |---|---|---|
-| 3days | `{category}_3days_{YYYY-MM-DD}.json` | `engagement_3days_2026-09-14.json` |
-| weekly | `{category}_week_{YYYY-WWW}.json` | `engagement_week_2026-W37.json` |
-| monthly | `{category}_month_{YYYY-MM}.json` | `engagement_month_2026-09.json` |
+| 1day | `{prefix}_1day_{YYYY-MM-DD}.json` | `explore_1day_2026-09-18.json` |
+| 3days | `{prefix}_3days_{YYYY-MM-DD}.json` | `explore_3days_2026-09-18.json` |
+| weekly | `{prefix}_weekly_{YYYY-WWW}.json` | `explore_weekly_2026-W38.json` |
+| monthly | `{prefix}_monthly_{YYYY-MM}.json` | `explore_monthly_2026-09.json` |
 
-## Query Construction
+## Query Construction (Search Mode)
 
 Query dibangun secara otomatis berdasarkan:
 ```
@@ -127,5 +174,5 @@ Query dibangun secara otomatis berdasarkan:
 ```
 
 Contoh:
-- Indonesia, 3days: `(heboh OR geger OR gempar) filter:media min_faves:500 since:2026-09-11 -is:retweet`
-- Global, weekly: `(went viral OR blew up OR buzzing) filter:media min_faves:1000 since:2026-09-08 -is:retweet`
+- Indonesia, 3days: `(heboh OR geger OR gempar) filter:media min_faves:500 since:2026-09-15 -is:retweet`
+- Global, weekly: `(went viral OR blew up OR buzzing) filter:media min_faves:1000 since:2026-09-15 -is:retweet`

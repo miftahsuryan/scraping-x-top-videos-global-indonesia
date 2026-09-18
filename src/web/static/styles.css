@@ -115,6 +115,25 @@ input[type="text"]:focus {
 
 .checkbox-group label:hover { background: var(--bg); }
 
+.radio-group {
+  display: flex;
+  gap: 8px;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 400;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.radio-group label:hover { background: var(--bg); }
+
 button[type="submit"] {
   background: var(--primary);
   color: #fff;

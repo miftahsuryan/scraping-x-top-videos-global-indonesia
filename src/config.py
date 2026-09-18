@@ -34,16 +34,18 @@ CATEGORIES: list[str] = [
     "engagement", "news", "economic", "social", "technology", "research", "business", "social_media",
 ]
 
-PERIODS: list[str] = ["3days", "weekly", "monthly"]
+PERIODS: list[str] = ["1day", "3days", "weekly", "monthly"]
 
 MIN_FAVES: dict[str, int] = {
+    "1day": 100,
     "3days": 500,
     "weekly": 1000,
     "monthly": 1000,
 }
 
 SCRAPE_LIMIT: dict[str, int] = {
-    "3days": 5,
+    "1day": 10,
+    "3days": 10,
     "weekly": 10,
     "monthly": 10,
 }

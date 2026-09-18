@@ -9,7 +9,7 @@
         'engagement', 'news', 'economic', 'social',
         'technology', 'research', 'business', 'social_media'
     ];
-    const PERIODS = ['3days', 'weekly', 'monthly'];
+    const PERIODS = ['1day', '3days', 'weekly', 'monthly'];
     const CATEGORY_LABELS = {
         engagement: 'Engagement',
         news: 'News',
@@ -30,6 +30,7 @@
         setupForm();
         setupFilters();
         setupCloseDetail();
+        setupModeToggle();
         loadReports();
         pollStatus();
     }
@@ -81,6 +82,30 @@
         return Array.from(cbs).map(cb => cb.value);
     }
 
+    function setupModeToggle() {
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+        const categoriesSection = document.getElementById('categories-section');
+        const keywordsSection = document.getElementById('keywords-section');
+        
+        function toggleSections() {
+            const selectedMode = document.querySelector('input[name="mode"]:checked')?.value;
+            if (selectedMode === 'explore') {
+                categoriesSection.style.display = 'none';
+                keywordsSection.style.display = 'none';
+            } else {
+                categoriesSection.style.display = 'block';
+                keywordsSection.style.display = 'flex';
+            }
+        }
+        
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', toggleSections);
+        });
+        
+        // Initialize on load
+        toggleSections();
+    }
+
     function setupForm() {
         const form = document.getElementById('run-form');
         if (!form) return;
@@ -91,14 +116,21 @@
             const startBtn = document.getElementById('start-btn');
             errorEl.classList.add('hidden');
 
+            const mode = document.querySelector('input[name="mode"]:checked')?.value || 'explore';
             const periods = getSelectedValues('periods-group');
-            const categories = getSelectedValues('categories-group');
-            const keywordsId = document.getElementById('keywords-id').value.trim() || null;
-            const keywordsGl = document.getElementById('keywords-gl').value.trim() || null;
+            const categories = mode === 'search' ? getSelectedValues('categories-group') : ['explore'];
+            const keywordsId = mode === 'search' ? (document.getElementById('keywords-id').value.trim() || null) : null;
+            const keywordsGl = mode === 'search' ? (document.getElementById('keywords-gl').value.trim() || null) : null;
             const headless = document.getElementById('headless').checked;
 
-            if (!periods.length || !categories.length) {
-                errorEl.textContent = 'Select at least one period and one category.';
+            if (!periods.length) {
+                errorEl.textContent = 'Select at least one period.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            if (mode === 'search' && !categories.length) {
+                errorEl.textContent = 'Select at least one category for search mode.';
                 errorEl.classList.remove('hidden');
                 return;
             }
@@ -111,6 +143,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        mode,
                         periods,
                         categories,
                         keywords_id: keywordsId,

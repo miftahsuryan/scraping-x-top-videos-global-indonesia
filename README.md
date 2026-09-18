@@ -1,12 +1,34 @@
-# X/Twitter Video Scraper (8 Categories, 3 Periods, 2 Locales)
+# X/Twitter Video Scraper (Explore Mode + Search Mode)
 
-Proyek ini adalah scraper otomatis untuk mengumpulkan dan memeringkat tweet di X (Twitter) berdasarkan **8 kategori konten**, **3 periode waktu**, dan **2 locale** (Indonesia & Global).
+Scraper otomatis untuk mengumpulkan dan memeringkat tweet di X (Twitter) dengan dua mode operasi:
+- **Explore Mode (Default)**: Konten viral dari halaman Explore For You
+- **Search Mode**: Pencarian berdasarkan 8 kategori konten
 
-**Total: 48 file output** per sesi scraping (8 × 3 × 2).
+**4 periode waktu** | **10 item per periode** | **Video + Infographic**
 
 ---
 
-## Kategori
+## Mode Operasi
+
+| Mode | Deskripsi | Default |
+|---|---|---|
+| `explore` | Konten viral dari Explore For You | Yes |
+| `search` | Pencarian berdasarkan kategori & keyword | No |
+
+---
+
+## Periode
+
+| Periode | Deskripsi | since_date | Limit | min_faves |
+|---|---|---|---|---|
+| `1day` | 24 jam terakhir | Hari ini - 1 hari | 10 | 100 |
+| `3days` | 3 hari terakhir | Hari ini - 3 hari | 10 | 500 |
+| `weekly` | Senin -> hari ini | Senin minggu ini | 10 | 1000 |
+| `monthly` | Tanggal 1 -> hari ini | Tanggal 1 bulan ini | 10 | 1000 |
+
+---
+
+## Kategori (Search Mode)
 
 | Kategori | Deskripsi |
 |---|---|
@@ -19,160 +41,150 @@ Proyek ini adalah scraper otomatis untuk mengumpulkan dan memeringkat tweet di X
 | `business` | Bisnis, perusahaan, dan investasi |
 | `social_media` | Tren media sosial dan platform |
 
-## Periode
-
-| Periode | Deskripsi | Limit | min_faves |
-|---|---|---|---|
-| `3days` | 3 hari terakhir | 5 | 500 |
-| `weekly` | Senin → hari ini | 10 | 1000 |
-| `monthly` | Tanggal 1 → hari ini | 10 | 1000 |
-
-## Locale
-
-| Locale | Filter |
-|---|---|
-| `indonesia` | Keywords Indonesia (default) |
-| `global` | Keywords English (default) |
-
 ---
 
 ## Formula Pemeringkatan
 
-$$\text{Engagement Score} = \text{Likes} + \text{Reposts} + \text{Views}$$
+```
+Engagement Score = Likes + Reposts + Views
+```
 
 ---
 
-## Struktur Output
+## Setup & Instalasi
 
+### Prasyarat
+- Python 3.10+
+- Akun X (Twitter) yang aktif
+- macOS, Linux, atau Windows
+
+### Langkah Instalasi
+
+**1. Clone repository:**
+```bash
+git clone <repository-url>
+cd SCRAPING-CONTENT-X
 ```
-output/
-├── index.json
-├── indonesia/
-│   ├── engagement/
-│   │   ├── engagement_3days_2026-09-14.json
-│   │   ├── engagement_week_2026-W37.json
-│   │   └── engagement_month_2026-09.json
-│   ├── news/
-│   ├── economic/
-│   ├── social/
-│   ├── technology/
-│   ├── research/
-│   ├── business/
-│   └── social_media/
-└── global/
-    ├── engagement/
-    ├── news/
-    ├── economic/
-    ├── social/
-    ├── technology/
-    ├── research/
-    ├── business/
-    └── social_media/
+
+**2. Buat virtual environment:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate   # macOS/Linux
+.venv\Scripts\activate      # Windows
 ```
+
+**3. Install dependensi:**
+```bash
+pip install -r requirements.txt
+```
+
+**4. Install browser Chromium untuk Playwright:**
+```bash
+playwright install chromium
+```
+
+**5. Konfigurasi `.env`:**
+```bash
+cp .env.example .env
+```
+
+Buka file `.env` dan isi dengan cookie X/Twitter Anda:
+```env
+X_AUTH_TOKEN=your_auth_token_here
+X_CT0=your_ct0_here
+HEADLESS=true
+```
+
+**6. Cara Mendapatkan Cookie X/Twitter:**
+1. Buka [x.com](https://x.com) di Chrome/Firefox, login ke akun Anda
+2. Tekan `F12` atau `Ctrl+Shift+I` untuk buka Developer Tools
+3. Pergi ke tab **Application** (Chrome) atau **Storage** (Firefox)
+4. Di panel kiri, buka **Cookies** lalu pilih `https://x.com`
+5. Cari nilai `auth_token` dan `ct0`, copy ke file `.env`
+
+### Dependensi
+
+| Package | Versi | Fungsi |
+|---|---|---|
+| playwright | >= 1.40.0 | Otomasi browser |
+| pydantic | >= 2.5.0 | Validasi data |
+| python-dotenv | >= 1.0.0 | Environment variables |
+| fastapi | >= 0.115.0 | Web dashboard |
+| uvicorn | >= 0.30.0 | Web server |
+| pytest | >= 7.4.0 | Testing |
 
 ---
 
 ## CLI Usage
 
-### Default (semua period, semua category, semua locale)
+### Default (Explore Mode, Semua Periode)
 ```bash
 python main.py
 ```
 
-### Period tertentu
+### Explore Mode dengan Periode Tertentu
 ```bash
+python main.py --period 1day
 python main.py --period 3days
 python main.py --period weekly
 python main.py --period monthly
 ```
 
-### Category tertentu
+### Search Mode
 ```bash
-python main.py --category news
-python main.py --category news,economic,social
+python main.py --mode search --category news
+python main.py --mode search --category news,economic,social
 ```
 
-### Custom Keywords
+### Custom Keywords (Search Mode)
 ```bash
-python main.py --category news --keywords-id "berita terkini,update" --keywords-gl "breaking news"
+python main.py --mode search --category news --keywords-id "berita terkini,update" --keywords-gl "breaking news"
 ```
 
-### Debugging (browser visible)
+### Debugging (Browser Visible)
 ```bash
 python main.py --no-headless
 ```
 
 ### Kombinasi
 ```bash
-python main.py --period 3days --category news,economic --keywords-id "ekonomi,berita" --keywords-gl "economy,news"
+python main.py --mode search --period 3days --category news,economic --keywords-id "ekonomi,berita"
 ```
+
+---
+
+## CLI Flags
+
+| Flag | Deskripsi | Default | Pilihan |
+|---|---|---|---|
+| `--mode` | Mode scraping | `explore` | `explore`, `search` |
+| `--period` | Periode waktu | `all` | `1day`, `3days`, `weekly`, `monthly`, `all` |
+| `--category` | Kategori konten | `all` | `engagement`, `news`, `economic`, `social`, `technology`, `research`, `business`, `social_media`, `all` |
+| `--keywords-id` | Custom keywords Indonesia | Default per kategori | `"berita,ekonomi"` |
+| `--keywords-gl` | Custom keywords Global | Default per kategori | `"news,economy"` |
+| `--no-headless` | Tampilkan browser | `false` | Flag tanpa value |
+| `--explore-limit` | Jumlah tweet explore | `10` | Angka integer |
 
 ---
 
 ## Custom Keywords
 
-- Format: comma-separated, support multi-word dengan quote
-- Case-insensitive (huruf besar/kecil tidak masalah)
-- Match logic: OR (jika salah satu keyword cocok)
-- Digabung dengan default keywords
-
-**Contoh:**
+### Format
 ```bash
---keywords-id "berita terkini,ekonomi pasar"
---keywords-gl "breaking news,stock market"
+--keywords-id "keyword1,keyword2,keyword3"
+--keywords-gl '"multi word keyword",keyword2'
 ```
+
+### Aturan
+- **Comma-separated**: `berita,ekonomi,sosial`
+- **Multi-word dengan quote**: `"breaking news","stock market"`
+- **Case-insensitive**: `BERITA` = `berita` = `Berita`
+- **OR logic**: Match jika salah satu keyword cocok
+- **Digabung**: Custom keywords + default keywords
 
 ---
 
-## Default Keywords
-
-### Indonesia
-| Kategori | Keywords |
-|---|---|
-| engagement | heboh, geger, gempar, syok, kaget, ramai dibicarakan, bikin heboh, jadi sorotan, curi perhatian, banjir komentar, disorot netizen, jadi bahan obrolan, netizen heboh, bikin geger, tak disangka, mengejutkan publik, gempar netizen |
-| news | berita terkini, kabar terbaru, info terkini, kabar terhangat, berita hari ini, berita mengejutkan, update terbaru, kabar duka, kabar gembira, peristiwa terkini, kejadian terbaru, laporan terbaru, sorotan berita, headline hari ini, isu terkini, insiden terbaru, berita nasional, kronologi kejadian |
-| economic | pasar saham, ihsg, rupiah melemah, rupiah menguat, harga naik, harga turun, harga bbm, inflasi, resesi ekonomi, bi rate, suku bunga, investasi saham, bursa efek, kripto indonesia, harga emas, nilai tukar, utang negara, apbn, pajak naik, subsidi bbm, harga sembako, daya beli, pertumbuhan ekonomi |
-| social | bansos, kemiskinan, kesejahteraan sosial, unjuk rasa, demo buruh, bantuan sosial, korban bencana, penggalangan dana, aksi solidaritas, anak jalanan, kelaparan, gizi buruk, pengungsi, korban kekerasan, hak asasi manusia, diskriminasi, kesenjangan sosial, gerakan sosial, relawan bencana, donasi bencana |
-| technology | teknologi terbaru, aplikasi lokal, startup lokal, inovasi anak bangsa, hp terbaru, gawai terbaru, kecerdasan buatan, robot canggih, aplikasi buatan indonesia, perusahaan rintisan, teknologi ai, inovasi digital, transformasi digital, produk teknologi baru, gadget terbaru, peluncuran aplikasi, startup teknologi, riset teknologi |
-| research | penelitian, riset, studi, discovery |
-| business | bisnis, perusahaan, ceo perusahaan, direktur utama, merger perusahaan, akuisisi bisnis, ipo saham, pendapatan perusahaan, laba perusahaan, rugi perusahaan, phk massal, kemitraan bisnis, waralaba, umkm naik kelas, wirausaha muda, pengusaha sukses, strategi bisnis, ekspansi usaha, brand lokal, bisnis online, jualan online, bangkrut |
-| social_media | media sosial, fitur baru instagram, update tiktok, algoritma twitter, x down, instagram down, kebijakan media sosial, konten kreator, monetisasi konten, centang biru, verifikasi akun, akun diblokir, tren tiktok, live streaming, influencer marketing, platform media sosial, update algoritma, fitur terbaru medsos, meta rilis fitur, youtube shorts |
-
-### Global
-| Kategori | Keywords |
-|---|---|
-| engagement | went viral, blew up, buzzing, sensation, can't stop watching, took the internet by storm, everyone's talking about, internet is obsessed, gone viral, viral moment, broke the internet, stopped scrolling, can't unsee, viral sensation, jaw-dropping, mind-blowing, instant hit |
-| news | breaking news, headlines, just in, developing story, top story, news alert, live update, world news, latest news, reports say, according to reports, major incident, this just happened, exclusive report, confirmed reports |
-| economic | stock market, wall street, inflation, recession, interest rate, federal reserve, nasdaq, s&p 500, market crash, crypto crash, market rally, economic downturn, gdp growth, trade war, oil prices, gold prices, jobs report, market volatility, bear market, bull market |
-| social | welfare, food bank, protest, homelessness, wage strike, human rights, charity, relief fund, refugees, social justice, inequality, activism, grassroots movement, community support, disaster relief, fundraising campaign, volunteers, mutual aid |
-| technology | tech news, ai breakthrough, new gadget, startup funding, app launch, tech giant, silicon valley, product launch, software update, tech innovation, ai model, chip technology, venture capital, tech industry, smart device, next-gen tech, robotics breakthrough |
-| research | research, study, discovery |
-| business | business, CEO resigns, CEO steps down, merger, acquisition, IPO, quarterly earnings, company profits, layoffs, business partnership, franchise, small business, entrepreneur, business strategy, corporate expansion, brand deal, e-commerce, business deal, corporate news, retail, supply chain, bankruptcy |
-| social_media | social media, new feature, algorithm change, platform outage, app update, blue checkmark, account verification, content creator, creator economy, monetization update, community guidelines, account banned, live streaming, influencer marketing, platform update, app down, TikTok ban, Meta announcement, YouTube Shorts, X update |
-
----
-
-## Instalasi
-
-### 1. Prasyarat
-- Python 3.10+
-- Akun X (Twitter) yang aktif
-
-### 2. Install Dependensi
-```bash
-pip install -r requirements.txt
-playwright install chromium
-```
-
-### 3. Konfigurasi `.env`
-```bash
-cp .env.example .env
-```
-Isi cookie X/Twitter (`auth_token`, `ct0`) dari browser Developer Tools.
-
----
-
-## Web Dashboard (Local Only)
+## Web Dashboard
 
 Dashboard browser untuk mengontrol scraper tanpa CLI.
 
@@ -184,13 +196,15 @@ python web_ui.py
 Buka `http://127.0.0.1:8000` di browser.
 
 ### Fitur Dashboard
-- **Start Scraping**: Pilih period, category, custom keywords, headless mode
+- **Mode Selection**: Pilih Explore atau Search mode
+- **Start Scraping**: Pilih periode dan jalankan scraper
 - **Status Monitoring**: Polling status job secara real-time
 - **Report Browser**: Filter dan lihat hasil scraping
 - **Report Detail**: Lihat ranked tweets dengan metrics
 
 ### API Endpoints
-| Endpoint | Method | Description |
+
+| Endpoint | Method | Deskripsi |
 |---|---|---|
 | `/` | GET | Dashboard HTML |
 | `/api/health` | GET | Health check |
@@ -206,6 +220,45 @@ Buka `http://127.0.0.1:8000` di browser.
 
 ---
 
+## Struktur Output
+
+### Explore Mode
+```
+OUTPUT-X/
+  index.json
+  explore/
+    explore_1day_2026-09-18.json
+    explore_3days_2026-09-18.json
+    explore_weekly_2026-W38.json
+    explore_monthly_2026-09.json
+```
+
+### Search Mode
+```
+OUTPUT-X/
+  index.json
+  indonesia/
+    engagement/
+    news/
+    economic/
+    social/
+    technology/
+    research/
+    business/
+    social_media/
+  global/
+    engagement/
+    news/
+    economic/
+    social/
+    technology/
+    research/
+    business/
+    social_media/
+```
+
+---
+
 ## Testing
 
 ```bash
@@ -216,40 +269,43 @@ pytest tests/
 
 ## Struktur Folder Proyek
 
-```text
-scraping/
-├── AGENTS.md
-├── README.md
-├── requirements.txt
-├── .env.example
-├── .gitignore
-├── conftest.py
-├── main.py
-├── web_ui.py
-├── docs/
-├── output/
-├── specs/
-│   ├── x-video-scraper/
-│   └── web-ui/
-├── src/
-│   ├── __init__.py
-│   ├── browser.py
-│   ├── config.py
-│   ├── extractor.py
-│   ├── models.py
-│   ├── scraper.py
-│   └── web/
-│       ├── __init__.py
-│       ├── app.py
-│       ├── schemas.py
-│       ├── jobs.py
-│       ├── reports.py
-│       ├── templates/
-│       │   └── index.html
-│       └── static/
-│           ├── app.js
-│           └── styles.css
-├── standards/
-└── tests/
-    └── test_extractor.py
+```
+SCRAPING-CONTENT-X/
+  AGENTS.md
+  README.md
+  requirements.txt
+  .env.example
+  .gitignore
+  conftest.py
+  main.py
+  web_ui.py
+  docs/
+    USAGE.md
+    FAQ.md
+  OUTPUT-X/
+  specs/
+    x-video-scraper/
+    web-ui/
+  src/
+    __init__.py
+    browser.py
+    config.py
+    extractor.py
+    models.py
+    scraper.py
+    web/
+      __init__.py
+      app.py
+      schemas.py
+      jobs.py
+      reports.py
+      templates/
+        index.html
+      static/
+        app.js
+        styles.css
+  standards/
+  tests/
+    test_extractor.py
+    test_web_schemas.py
 ```

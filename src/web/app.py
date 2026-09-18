@@ -16,6 +16,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from main import run_explore_scraper, run_scraper
 from src.web.jobs import JobService
 from src.web.reports import OutputRepository
 from src.web.schemas import ScrapeRequest, ScrapeResponse
@@ -46,7 +47,6 @@ def create_app(
     assets: DashboardAssets | None = None,
     job_service: JobService | None = None,
     output_repository: OutputRepository | None = None,
-    run_scraper_fn=None,
 ) -> FastAPI:
     """Create the local dashboard application with no cross-origin policy."""
     configured_assets = assets or DashboardAssets(
@@ -134,13 +134,10 @@ def create_app(
                 message="A scraper job is already active.",
             )
 
-        if run_scraper_fn is None:
-            return JSONResponse(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={"detail": "Scraper function not available."},
-            )
-
-        snapshot = await svc.start(request, run_scraper_fn)
+        snapshot = await svc.start(
+            request,
+            run_explore_scraper if request.mode == "explore" else run_scraper,
+        )
         return ScrapeResponse(
             job_id=snapshot.job_id or "",
             state=snapshot.state,

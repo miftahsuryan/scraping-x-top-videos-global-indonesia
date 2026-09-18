@@ -12,6 +12,7 @@ from src.web.schemas import MAX_KEYWORD_INPUT_LENGTH, ScrapeRequest
 def test_scrape_request_accepts_current_config_values() -> None:
     """Configured period/category values and boolean settings are accepted."""
     request = ScrapeRequest(
+        mode="explore",
         periods=PERIODS,
         categories=CATEGORIES,
         keywords_id='"breaking news",update',

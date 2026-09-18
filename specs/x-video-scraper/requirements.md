@@ -64,12 +64,12 @@ Output disimpan dalam format JSON terstruktur dengan struktur folder berbeda per
 - **REQ-7.4**: THE SYSTEM SHALL mendeteksi sensitive content warning dari X/Twitter dengan mengecek keberadaan `div[data-testid='warningScreen']` pada tweet. IF sensitive content warning terdeteksi, THEN tweet tersebut diabaikan.
 - **REQ-7.5**: IF tweet terdeteksi sebagai NSFW berdasarkan kombinasi caption, handle, domain video, atau sensitive content warning, THEN THE SYSTEM SHALL mengabaikan tweet tersebut dari hasil scraping.
 
-### Requirement 8: 6 Categories, 3 Periods, 2 Locales
-- **REQ-8.1**: THE SYSTEM SHALL mendukung 6 kategori: `engagement`, `news`, `economic`, `social`, `technology`, `research`.
-- **REQ-8.2**: THE SYSTEM SHALL mendukung 3 periode: `3days` (3 hari terakhir), `weekly` (Senin → hari ini), `monthly` (tanggal 1 → hari ini).
-- **REQ-8.3**: THE SYSTEM SHALL mendukung 2 locale: `indonesia` (filter `lang:id`) dan `global` (tanpa filter bahasa).
-- **REQ-8.4**: Total output per sesi scraping adalah 36 file (6 × 3 × 2).
-- **REQ-8.5**: List categories dan periods SHALL didefinisikan di `config.py` untuk memudahkan penambahan di masa depan.
+### Requirement 8: 6 Categories, 4 Periods, Explore Mode Default
+- **REQ-8.1**: THE SYSTEM SHALL mendukung mode utama `explore` (Explore For You) secara default, dan tetap mempertahankan mode `search` dengan 8 kategori.
+- **REQ-8.2**: THE SYSTEM SHALL mendukung 4 periode: `1day` (24 jam terakhir), `3days` (3 hari terakhir), `weekly` (Mingguan), `monthly` (Bulanan).
+- **REQ-8.3**: THE SYSTEM SHALL memproses 10 item/video teratas per periode (`SCRAPE_LIMIT = 10`).
+- **REQ-8.4**: Total output per sesi explore scraping adalah 4 file report (1 file per periode).
+- **REQ-8.5**: List periods (`["1day", "3days", "weekly", "monthly"]`) dan limit (`SCRAPE_LIMIT`) SHALL didefinisikan di `config.py`.
 
 ### Requirement 9: Custom Keywords via CLI
 - **REQ-9.1**: THE SYSTEM SHALL mendukung flag CLI `--keywords-id` untuk custom keywords Indonesia.

@@ -31,6 +31,7 @@ class ScrapeRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
+    mode: str = Field(default="explore", pattern="^(search|explore)$")
     periods: list[str] = Field(min_length=1, max_length=len(PERIODS))
     categories: list[str] = Field(min_length=1, max_length=len(CATEGORIES))
     keywords_id: str | None = Field(default=None, max_length=MAX_KEYWORD_INPUT_LENGTH)

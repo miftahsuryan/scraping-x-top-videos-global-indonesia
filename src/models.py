@@ -27,6 +27,9 @@ class VideoTweet(BaseModel):
     engagement: EngagementMetrics = Field(
         ..., description="Rincian dan total skor metrik keterlibatan"
     )
+    source: str = Field(
+        default="search", description="Source scraping: 'search' atau 'explore'"
+    )
 
 
 class ScrapeReport(BaseModel):
@@ -38,6 +41,9 @@ class ScrapeReport(BaseModel):
     formula: str = Field(
         default="likes + reposts + views",
         description="Formula penghitungan ranking keterlibatan",
+    )
+    mode: str = Field(
+        default="search", description="Mode scraping: 'search' atau 'explore'"
     )
     total_items: int = Field(
         default=0, description="Total tweet yang berhasil dikumpulkan"
