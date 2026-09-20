@@ -171,6 +171,40 @@ def create_app(
             )
         return report.model_dump()
 
+    @app.get("/api/screenshots/{date}/{filename}")
+    async def get_screenshot(date: str, filename: str):
+        """Serve a saved tweet screenshot safely with path traversal protection."""
+        import re
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"detail": "Screenshot not found."},
+            )
+        if not filename or "/" in filename or "\\" in filename or ".." in filename:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"detail": "Screenshot not found."},
+            )
+
+        screenshots_dir = Path("OUTPUT-X/screenshots").resolve()
+        target_path = (screenshots_dir / date / filename).resolve()
+
+        try:
+            target_path.relative_to(screenshots_dir)
+        except ValueError:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"detail": "Screenshot not found."},
+            )
+
+        if not target_path.is_file():
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"detail": "Screenshot not found."},
+            )
+
+        return FileResponse(target_path, media_type="image/png")
+
     logger.info("event=dashboard_application_created")
     return app
 

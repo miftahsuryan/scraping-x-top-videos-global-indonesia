@@ -16,6 +16,8 @@ from src.config import (
     CATEGORIES,
     DEFAULT_KEYWORDS_GL,
     DEFAULT_KEYWORDS_ID,
+    EXPLORE_LIMIT,
+    EXPLORE_MAX_SCROLLS,
     HEADLESS,
     MAX_SCROLLS,
     MIN_FAVES,
@@ -24,6 +26,7 @@ from src.config import (
     SCRAPE_LIMIT,
     parse_keywords,
 )
+from src.downloader import run_downloader
 from src.models import ScrapeReport
 from src.scraper import scrape_explore_for_you, scrape_top_videos
 
@@ -44,15 +47,9 @@ def get_since_date(period: str) -> str:
 
 
 def get_date_label(period: str) -> str:
-    """Get date label for filename based on period."""
+    """Get date label for filename — always YYYY-MM-DD."""
     today = date.today()  # noqa: DTZ011
-    if period == "1day" or period == "3days":
-        return today.strftime("%Y-%m-%d")
-    elif period == "weekly":
-        iso_cal = today.isocalendar()
-        return f"{iso_cal[0]}-W{iso_cal[1]:02d}"
-    else:  # monthly
-        return today.strftime("%Y-%m")
+    return today.strftime("%Y-%m-%d")
 
 
 def get_query(category: str, locale: str, keywords: list[str], period: str) -> str:
@@ -152,7 +149,7 @@ async def run_scraper(
 
                     folder = output_dir / locale / category
                     folder.mkdir(parents=True, exist_ok=True)
-                    filename = f"{category}_{period}_{date_label}.json"
+                    filename = f"{date_label}.json"
                     filepath = folder / filename
                     write_report(filepath, report)
 
@@ -185,14 +182,13 @@ async def run_scraper(
 
 
 async def run_explore_scraper(
-    periods: list[str],
     headless: bool = True,
-    limit: int = 10,
+    limit: int = EXPLORE_LIMIT,
+    **_kwargs,
 ):
     print("=" * 60)
     print("X/Twitter Video Scraper — EXPLORE MODE")
-    print(f"Periods: {', '.join(periods)}")
-    print("Source: Explore For You (Random Viral Content)")
+    print("Source: X Search Top — 15 Best Viral Media (Engagement Ranked)")
     print("Formula: Likes + Reposts + Views")
     print("=" * 60)
 
@@ -206,51 +202,47 @@ async def run_explore_scraper(
         browser, context = await init_browser_context(p, headless=headless)
         page = await context.new_page()
 
-        task_num = 0
-        total_tasks = len(periods)
+        since_date = date.today().strftime("%Y-%m-%d")  # noqa: DTZ011
+        date_label = date.today().strftime("%Y-%m-%d")  # noqa: DTZ011
 
-        for task_num, period in enumerate(periods, start=1):
-            since_date = get_since_date(period)
-            date_label = get_date_label(period)
+        tweets = await scrape_explore_for_you(
+            page, limit=limit, max_scrolls=EXPLORE_MAX_SCROLLS, date_label=date_label
+        )
+        print(f"  Scraped: {len(tweets)} tweets")
 
-            print(f"\n[{task_num}/{total_tasks}] Explore For You | {period}")
+        tweets.sort(key=lambda t: t.engagement.total_score, reverse=True)
+        top_tweets = tweets[:limit]
 
-            tweets = await scrape_explore_for_you(page, limit=limit, max_scrolls=MAX_SCROLLS)
-            print(f"  Scraped: {len(tweets)} tweets")
+        report = ScrapeReport(
+            period="explore",
+            category="explore",
+            locale="mixed",
+            scraped_date=since_date,
+            scraped_at=datetime.now(timezone.utc).isoformat(),
+            formula="likes + reposts + views",
+            mode="explore",
+            total_items=len(top_tweets),
+            tweets=top_tweets,
+        )
 
-            tweets.sort(key=lambda t: t.engagement.total_score, reverse=True)
-            top_tweets = tweets[:limit]
+        folder = output_dir / "explore"
+        folder.mkdir(parents=True, exist_ok=True)
+        filename = f"{date_label}.json"
+        filepath = folder / filename
+        write_report(filepath, report)
 
-            report = ScrapeReport(
-                period=period,
-                category="explore",
-                locale="mixed",
-                scraped_date=since_date,
-                scraped_at=datetime.now(timezone.utc).isoformat(),
-                formula="likes + reposts + views",
-                mode="explore",
-                total_items=len(top_tweets),
-                tweets=top_tweets,
-            )
+        total_tweets += len(top_tweets)
+        print(f"  → {len(top_tweets)} tweets saved to {filepath}")
 
-            folder = output_dir / "explore"
-            folder.mkdir(parents=True, exist_ok=True)
-            filename = f"explore_{period}_{date_label}.json"
-            filepath = folder / filename
-            write_report(filepath, report)
-
-            total_tweets += len(top_tweets)
-            print(f"  → {len(top_tweets)} tweets saved to {filepath}")
-
-            all_results.append({
-                "locale": "mixed",
-                "category": "explore",
-                "period": period,
-                "mode": "explore",
-                "filename": f"explore/{filename}",
-                "total_items": len(top_tweets),
-                "scraped_at": datetime.now(timezone.utc).isoformat(),
-            })
+        all_results.append({
+            "locale": "mixed",
+            "category": "explore",
+            "period": "explore",
+            "mode": "explore",
+            "filename": f"explore/{filename}",
+            "total_items": len(top_tweets),
+            "scraped_at": datetime.now(timezone.utc).isoformat(),
+        })
 
         await browser.close()
 
@@ -313,25 +305,42 @@ def main():
     parser.add_argument(
         "--explore-limit",
         type=int,
-        default=10,
-        help="Jumlah tweet untuk mode explore (default: 10)",
+        default=EXPLORE_LIMIT,
+        help=f"Jumlah tweet untuk mode explore (default: {EXPLORE_LIMIT})",
+    )
+    parser.add_argument(
+        "--download",
+        action="store_true",
+        help="Download videos via twittersaver.net untuk tweet yang sudah di-scrape",
+    )
+    parser.add_argument(
+        "--report",
+        type=str,
+        default=None,
+        help="Path spesifik file report JSON (untuk digunakan dengan --download)",
     )
 
     args = parser.parse_args()
     headless = HEADLESS and not args.no_headless
 
-    if args.period == "all":
-        periods = PERIODS
-    else:
-        periods = [args.period]
+    if args.download:
+        asyncio.run(run_downloader(
+            report_path=args.report,
+            headless=headless,
+        ))
+        return
 
     if args.mode == "explore":
         asyncio.run(run_explore_scraper(
-            periods=periods,
             headless=headless,
             limit=args.explore_limit,
         ))
         return
+
+    if args.period == "all":
+        periods = PERIODS
+    else:
+        periods = [args.period]
 
     if args.category == "all":
         categories = CATEGORIES

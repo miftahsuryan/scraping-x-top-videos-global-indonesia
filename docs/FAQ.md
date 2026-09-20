@@ -151,3 +151,25 @@ python main.py --no-headless
 # Jalankan dengan 1 periode saja
 python main.py --period 1day --no-headless
 ```
+
+## Q: Bagaimana cara download video dari tweet?
+
+Gunakan mode `--download` untuk mengunduh video dari tweet yang sudah di-scrape:
+
+```bash
+# Download dari semua reports
+python main.py --download
+
+# Download dari report tertentu
+python main.py --download --report OUTPUT-X/explore/explore_latest_2026-09-20.json
+```
+
+Video akan disimpan di `OUTPUT-X/downloads/{scraped_date}/tweet_{tweet_id}.mp4`. Source report JSON juga akan di-update dengan field `download_path`.
+
+## Q: Apakah bisa re-run download tanpa download ulang?
+
+Ya. Sistem akan skip tweet yang sudah memiliki `download_path` dan file MP4 yang sudah ada di disk. Aman untuk dijalankan berulang kali.
+
+## Q: Berapa lama proses download per video?
+
+Proses download melibatkan: navigasi ke twittersaver.net (~3-5 detik), resolve link (~2-3 detik), dan download file (tergantung ukuran video). Total rata-rata 10-15 detik per video. Terdapat rate limiting 3-5 detik antar request.

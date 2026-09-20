@@ -15,6 +15,12 @@ python main.py --mode search --category news
 # Dengan custom keywords
 python main.py --mode search --category news --keywords-id "berita terkini" --keywords-gl "breaking news"
 
+# Download video dari reports
+python main.py --download
+
+# Download dari report tertentu
+python main.py --download --report OUTPUT-X/explore/explore_latest_2026-09-20.json
+
 # Debugging (browser visible)
 python main.py --no-headless
 ```
@@ -30,6 +36,8 @@ python main.py --no-headless
 | `--keywords-gl` | Custom keywords Global | Default per kategori | `"news,economy"` |
 | `--no-headless` | Tampilkan browser | `false` | Flag tanpa value |
 | `--explore-limit` | Jumlah tweet explore | `10` | Angka integer |
+| `--download` | Download video via twittersaver.net | `false` | Flag tanpa value |
+| `--report` | Path file report spesifik (untuk `--download`) | Semua reports | Path ke file JSON |
 
 ## Mode Operasi
 
@@ -64,6 +72,29 @@ python main.py --mode search --category news,economic,social
 # Dengan custom keywords
 python main.py --mode search --category news --keywords-id "berita terkini" --keywords-gl "breaking news"
 ```
+
+### Download Mode
+Download video dari tweet yang sudah di-scrape menggunakan twittersaver.net sebagai proxy. Mode ini membaca tweet URL dari report JSON yang ada, me-resolve link download MP4, lalu mengunduh file videonya.
+
+```bash
+# Download dari semua reports
+python main.py --download
+
+# Download dari report tertentu
+python main.py --download --report OUTPUT-X/explore/explore_latest_2026-09-20.json
+
+# Debug dengan browser visible
+python main.py --download --no-headless
+```
+
+**Cara kerja:**
+1. Membaca `OUTPUT-X/index.json` atau file report spesifik
+2. Memfilter tweet yang sudah di-download (skip jika `download_path` sudah ada)
+3. Untuk setiap tweet URL, navigate ke twittersaver.net dan resolve link MP4
+4. Download video ke `OUTPUT-X/downloads/{scraped_date}/tweet_{tweet_id}.mp4`
+5. Update source report JSON dengan `download_path`
+
+**Rate limiting:** 3-5 detik antar request ke twittersaver.net, max 2 retry dengan exponential backoff.
 
 ## Custom Keywords
 
@@ -128,6 +159,9 @@ OUTPUT-X/
     explore_3days_2026-09-18.json
     explore_weekly_2026-W38.json
     explore_monthly_2026-09.json
+  downloads/
+    2026-09-18/
+      tweet_2101516770255270041.mp4
 ```
 
 ### Search Mode

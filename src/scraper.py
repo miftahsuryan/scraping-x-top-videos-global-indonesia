@@ -1,11 +1,15 @@
 import asyncio
 import logging
+import os
 from urllib.parse import quote
 
 from playwright.async_api import Page
 
 from src.config import (
     ALLOWED_VIDEO_DOMAINS,
+    EXPLORE_MAX_SCROLLS,
+    EXPLORE_MIN_FAVES,
+    EXPLORE_SINCE_DAYS,
     MAX_SCROLLS,
     NSFW_HANDLE_PATTERNS,
     NSFW_KEYWORDS,
@@ -197,18 +201,58 @@ async def _async_extract_tweet(article) -> dict | None:
     }
 
 
+async def _capture_tweet_screenshot(
+    page: Page,
+    tweet_url: str,
+    tweet_id: str,
+    date_label: str,
+) -> str | None:
+    """Navigate to tweet URL and capture a screenshot of the tweet article."""
+    if not tweet_id or not tweet_url:
+        return None
+    screenshots_dir = os.path.join("OUTPUT-X/screenshots", date_label)
+    try:
+        os.makedirs(screenshots_dir, exist_ok=True)
+        await page.goto(tweet_url, wait_until="domcontentloaded", timeout=30000)
+        await asyncio.sleep(3)
+        article = page.locator("article[data-testid='tweet']").first
+        if await article.count() == 0:
+            logger.warning("No article found for tweet %s", tweet_id)
+            return None
+        filename = f"tweet_{tweet_id}.png"
+        filepath = os.path.join(screenshots_dir, filename)
+        await article.screenshot(path=filepath, scale="device", timeout=15000)
+        return f"OUTPUT-X/screenshots/{date_label}/{filename}"
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Failed to capture screenshot for tweet %s: %s", tweet_id, e)
+        return None
+
+
 async def scrape_explore_for_you(
     page: Page,
-    limit: int = 5,
-    max_scrolls: int = MAX_SCROLLS,
+    limit: int = 15,
+    max_scrolls: int = EXPLORE_MAX_SCROLLS,
+    date_label: str = "",
 ) -> list[VideoTweet]:
-    """Scrape top tweets from X Explore For You tab, filtered for quality and NSFW content."""
-    explore_url = "https://x.com/explore"
-    print("[Scraper] Mode: Explore For You")
-    print(f"[Scraper] URL: {explore_url}")
+    """Scrape top viral tweets using X Search 'Top' with broad media + engagement filters.
+
+    Replaces the Explore 'For You' page, which now surfaces mostly text-only content
+    that fails media filters. X Search f=top with filter:media provides engagement-ranked,
+    media-rich results reliably.
+    """
+    from datetime import date, timedelta
+
+    since_date = (date.today() - timedelta(days=EXPLORE_SINCE_DAYS)).strftime("%Y-%m-%d")  # noqa: DTZ011
+    explore_query = f"filter:media min_faves:{EXPLORE_MIN_FAVES} since:{since_date} -is:retweet"
+    encoded_query = quote(explore_query, safe="")
+    search_url = f"https://x.com/search?q={encoded_query}&f=top"
+
+    print("[Scraper] Mode: Explore (via Search Top)")
+    print(f"[Scraper] Query: {explore_query}")
+    print(f"[Scraper] URL: {search_url}")
 
     try:
-        await page.goto(explore_url, wait_until="domcontentloaded", timeout=45000)
+        await page.goto(search_url, wait_until="domcontentloaded", timeout=45000)
         await asyncio.sleep(4)
     except Exception as e:  # noqa: BLE001
         logger.warning("Navigation warning: %s", e)
@@ -219,7 +263,7 @@ async def scrape_explore_for_you(
     for scroll_idx in range(max_scrolls):
         articles = await page.locator("article[data-testid='tweet']").all()
         print(
-            f"[Scraper] Scroll #{scroll_idx + 1} - Mendeteksi {len(articles)} tweet di viewport..."
+            f"[Scraper] Scroll #{scroll_idx + 1}/{max_scrolls} - Mendeteksi {len(articles)} tweet di viewport..."
         )
 
         for article in articles:
@@ -250,11 +294,8 @@ async def scrape_explore_for_you(
                 logger.warning("Error processing tweet: %s", e)
                 continue
 
-        await page.mouse.wheel(0, 2500)
-        await asyncio.sleep(2.5)
-
-        if len(candidates) >= limit * 2:
-            break
+        await page.mouse.wheel(0, 3500)
+        await asyncio.sleep(2)
 
     candidates.sort(key=lambda t: t.engagement.total_score, reverse=True)
     top_results = candidates[:limit]
@@ -262,4 +303,14 @@ async def scrape_explore_for_you(
         f"[Scraper] Berhasil memfilter {len(top_results)} tweet teratas "
         f"dari total {len(candidates)} kandidat."
     )
+
+    if date_label and top_results:
+        print(f"[Scraper] Mengambil screenshot untuk {len(top_results)} tweet teratas...")
+        for tweet in top_results:
+            tweet_id = tweet.tweet_url.rstrip("/").split("/")[-1].split("?")[0]
+            shot_path = await _capture_tweet_screenshot(
+                page, tweet.tweet_url, tweet_id, date_label
+            )
+            tweet.screenshot_path = shot_path
+
     return top_results

@@ -30,6 +30,12 @@ class VideoTweet(BaseModel):
     source: str = Field(
         default="search", description="Source scraping: 'search' atau 'explore'"
     )
+    screenshot_path: str | None = Field(
+        default=None, description="Path file screenshot PNG tweet jika ada"
+    )
+    download_path: str | None = Field(
+        default=None, description="Path file video MP4 hasil download relatif ke OUTPUT-X"
+    )
 
 
 class ScrapeReport(BaseModel):

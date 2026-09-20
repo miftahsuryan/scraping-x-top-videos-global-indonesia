@@ -51,9 +51,9 @@ Move through it with these commands, in order:
 ## Project context — X/Twitter Video Engagement Scraper
 
 - **Language(s):** Python 3.10+ (PEP 8 compliance, explicit type hints across all modules)
-- **Framework(s) & Tooling:** Playwright for headless browser automation & network interception, Pydantic for data validation, python-dotenv for configuration
+- **Framework(s) & Tooling:** Playwright for headless browser automation & network interception, Pydantic for data validation, python-dotenv for configuration, httpx for async HTTP downloads
 - **Package manager / install command:** `pip install -r requirements.txt && playwright install chromium`
-- **Execution command:** `python main.py` or `python main.py --month YYYY-MM`
+- **Execution command:** `python main.py` (scrape), `python main.py --download` (download videos)
 - **Test command:** `pytest tests/`
 - **Lint/format command:** `ruff check .`
 - **Folder structure notes:**
@@ -63,6 +63,7 @@ Move through it with these commands, in order:
     - `src/browser.py` — Playwright browser lifecycle, stealth headers, cookie session management
     - `src/extractor.py` — Video URL extraction, tweet text extraction, and metric parsing (K/M to integer)
     - `src/scraper.py` — Scraper engine orchestrating Explore Indonesia and Global searches, candidate filtering, and ranking
+    - `src/downloader.py` — Video download module using twittersaver.net proxy, httpx streaming, and report updates
   - `output/` — Saved JSON files in format `top15_videos_YYYY-MM.json`
   - `tests/` — Unit and integration tests
 - **Data sensitivity / compliance notes:**

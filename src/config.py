@@ -29,6 +29,7 @@ BROWSER_USER_AGENT = (
 BROWSER_LOCALE = "en-US"
 
 MAX_SCROLLS = 12
+EXPLORE_MAX_SCROLLS = 20
 
 CATEGORIES: list[str] = [
     "engagement", "news", "economic", "social", "technology", "research", "business", "social_media",
@@ -49,6 +50,10 @@ SCRAPE_LIMIT: dict[str, int] = {
     "weekly": 10,
     "monthly": 10,
 }
+
+EXPLORE_LIMIT: int = 15
+EXPLORE_MIN_FAVES: int = 50
+EXPLORE_SINCE_DAYS: int = 7
 
 DEFAULT_KEYWORDS_ID: dict[str, list[str]] = {
     "engagement": [
@@ -197,6 +202,10 @@ NSFW_HANDLE_PATTERNS = frozenset([
 ALLOWED_VIDEO_DOMAINS = frozenset([
     "video.twimg.com",
 ])
+
+TWITTERSAVER_API_SEARCH = "https://twittersaver.net/api/ajaxSearch"
+TWITTERSAVER_API_TOKEN = os.getenv("TWITTERSAVER_API_TOKEN", "")
+TWITTERSAVER_API_EXPIRATION = os.getenv("TWITTERSAVER_API_EXPIRATION", "")
 
 
 def parse_keywords(raw: str | None) -> list[str]:

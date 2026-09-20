@@ -86,15 +86,18 @@
         const modeRadios = document.querySelectorAll('input[name="mode"]');
         const categoriesSection = document.getElementById('categories-section');
         const keywordsSection = document.getElementById('keywords-section');
+        const periodsSection = document.getElementById('periods-section');
         
         function toggleSections() {
             const selectedMode = document.querySelector('input[name="mode"]:checked')?.value;
             if (selectedMode === 'explore') {
                 categoriesSection.style.display = 'none';
                 keywordsSection.style.display = 'none';
+                periodsSection.style.display = 'none';
             } else {
                 categoriesSection.style.display = 'block';
                 keywordsSection.style.display = 'flex';
+                periodsSection.style.display = 'block';
             }
         }
         
@@ -117,13 +120,13 @@
             errorEl.classList.add('hidden');
 
             const mode = document.querySelector('input[name="mode"]:checked')?.value || 'explore';
-            const periods = getSelectedValues('periods-group');
+            const periods = mode === 'explore' ? ['explore'] : getSelectedValues('periods-group');
             const categories = mode === 'search' ? getSelectedValues('categories-group') : ['explore'];
             const keywordsId = mode === 'search' ? (document.getElementById('keywords-id').value.trim() || null) : null;
             const keywordsGl = mode === 'search' ? (document.getElementById('keywords-gl').value.trim() || null) : null;
             const headless = document.getElementById('headless').checked;
 
-            if (!periods.length) {
+            if (mode !== 'explore' && !periods.length) {
                 errorEl.textContent = 'Select at least one period.';
                 errorEl.classList.remove('hidden');
                 return;
@@ -281,7 +284,7 @@
                 </div>
                 <div class="report-meta">
                     <span class="tag">${escapeHtml(r.locale)}</span>
-                    <span class="tag">${r.total_tweets} tweets</span>
+                    <span class="tag">${r.total_items} tweets</span>
                     <span class="tag">${escapeHtml(r.scraped_at?.slice(0, 10) || '')}</span>
                 </div>
             </div>
@@ -334,6 +337,17 @@
                         <span class="author">${escapeHtml(tweet.username)}</span>
                         <span class="handle">${escapeHtml(tweet.handle)}</span>
                         <div class="caption">${escapeHtml(tweet.caption)}</div>
+                        ${tweet.screenshot_path ? `
+                            <div class="screenshot-container" style="margin: 12px 0;">
+                                ${(() => {
+                                    const parts = tweet.screenshot_path.split('/');
+                                    const date = parts[parts.length - 2] || '';
+                                    const file = parts[parts.length - 1] || '';
+                                    const url = '/api/screenshots/' + date + '/' + file;
+                                    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer"><img src="' + url + '" alt="Tweet Screenshot" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border);" /></a>';
+                                })()}
+                            </div>
+                        ` : ''}
                         <div class="metrics">
                             <span>Likes: ${tweet.engagement.likes.toLocaleString()}</span>
                             <span>Reposts: ${tweet.engagement.reposts.toLocaleString()}</span>

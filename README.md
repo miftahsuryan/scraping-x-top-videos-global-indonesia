@@ -111,6 +111,7 @@ HEADLESS=true
 | python-dotenv | >= 1.0.0 | Environment variables |
 | fastapi | >= 0.115.0 | Web dashboard |
 | uvicorn | >= 0.30.0 | Web server |
+| httpx | >= 0.27.0 | Async HTTP client (video download) |
 | pytest | >= 7.4.0 | Testing |
 
 ---
@@ -141,6 +142,18 @@ python main.py --mode search --category news,economic,social
 python main.py --mode search --category news --keywords-id "berita terkini,update" --keywords-gl "breaking news"
 ```
 
+### Download Video (via TwitterSaver.net)
+```bash
+# Download dari semua reports
+python main.py --download
+
+# Download dari report tertentu
+python main.py --download --report OUTPUT-X/explore/explore_latest_2026-09-20.json
+
+# Debug (browser visible)
+python main.py --download --no-headless
+```
+
 ### Debugging (Browser Visible)
 ```bash
 python main.py --no-headless
@@ -164,6 +177,8 @@ python main.py --mode search --period 3days --category news,economic --keywords-
 | `--keywords-gl` | Custom keywords Global | Default per kategori | `"news,economy"` |
 | `--no-headless` | Tampilkan browser | `false` | Flag tanpa value |
 | `--explore-limit` | Jumlah tweet explore | `10` | Angka integer |
+| `--download` | Download video via twittersaver.net | `false` | Flag tanpa value |
+| `--report` | Path file report spesifik (untuk `--download`) | Semua reports | Path ke file JSON |
 
 ---
 
@@ -231,6 +246,9 @@ OUTPUT-X/
     explore_3days_2026-09-18.json
     explore_weekly_2026-W38.json
     explore_monthly_2026-09.json
+  downloads/
+    2026-09-18/
+      tweet_2101516770255270041.mp4
 ```
 
 ### Search Mode
@@ -286,10 +304,12 @@ SCRAPING-CONTENT-X/
   specs/
     x-video-scraper/
     web-ui/
+    video-downloader/
   src/
     __init__.py
     browser.py
     config.py
+    downloader.py
     extractor.py
     models.py
     scraper.py
@@ -307,5 +327,6 @@ SCRAPING-CONTENT-X/
   standards/
   tests/
     test_extractor.py
+    test_downloader.py
     test_web_schemas.py
 ```
