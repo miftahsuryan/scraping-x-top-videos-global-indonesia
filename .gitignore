@@ -9,3 +9,4 @@ OUTPUT-X/
 venv/
 .DS_Store
 .ruff_cache/
+bulk_create.csv/
