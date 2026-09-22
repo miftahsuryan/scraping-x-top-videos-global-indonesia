@@ -53,54 +53,18 @@ Engagement Score = Likes + Reposts + Views
 
 ## Setup & Instalasi
 
-### Prasyarat
-- Python 3.10+
-- Akun X (Twitter) yang aktif
-- macOS, Linux, atau Windows
+Lihat [Local Setup Guide](docs/SETUP.md) untuk panduan lengkap.
 
-### Langkah Instalasi
-
-**1. Clone repository:**
-```bash
-git clone <repository-url>
-cd SCRAPING-CONTENT-X
-```
-
-**2. Buat virtual environment:**
+**Cepat:**
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate   # macOS/Linux
-.venv\Scripts\activate      # Windows
-```
-
-**3. Install dependensi:**
-```bash
+source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-**4. Install browser Chromium untuk Playwright:**
-```bash
 playwright install chromium
-```
-
-**5. Konfigurasi `.env`:**
-```bash
 cp .env.example .env
+# Isi X_AUTH_TOKEN dan X_CT0 di .env, lalu:
+python main.py
 ```
-
-Buka file `.env` dan isi dengan cookie X/Twitter Anda:
-```env
-X_AUTH_TOKEN=your_auth_token_here
-X_CT0=your_ct0_here
-HEADLESS=true
-```
-
-**6. Cara Mendapatkan Cookie X/Twitter:**
-1. Buka [x.com](https://x.com) di Chrome/Firefox, login ke akun Anda
-2. Tekan `F12` atau `Ctrl+Shift+I` untuk buka Developer Tools
-3. Pergi ke tab **Application** (Chrome) atau **Storage** (Firefox)
-4. Di panel kiri, buka **Cookies** lalu pilih `https://x.com`
-5. Cari nilai `auth_token` dan `ct0`, copy ke file `.env`
 
 ### Dependensi
 
@@ -237,42 +201,26 @@ Buka `http://127.0.0.1:8000` di browser.
 
 ## Struktur Output
 
-### Explore Mode
 ```
 OUTPUT-X/
-  index.json
-  explore/
-    explore_1day_2026-09-18.json
-    explore_3days_2026-09-18.json
-    explore_weekly_2026-W38.json
-    explore_monthly_2026-09.json
-  downloads/
-    2026-09-18/
-      tweet_2101516770255270041.mp4
-```
-
-### Search Mode
-```
-OUTPUT-X/
-  index.json
-  indonesia/
-    engagement/
-    news/
-    economic/
-    social/
-    technology/
-    research/
-    business/
-    social_media/
-  global/
-    engagement/
-    news/
-    economic/
-    social/
-    technology/
-    research/
-    business/
-    social_media/
+├── index.json                          # Master index
+├── explore/                            # Report JSON per tanggal
+│   └── 2026-09-21.json
+├── screenshots/                        # Screenshot per tanggal
+│   └── 2026-09-21/
+├── downloads/                          # Video/image download
+│   └── 2026-09-21/
+├── bulk_create/                        # CSV untuk Canva Bulk Create
+│   └── 2026-09-21/
+│       └── bulk_create.csv
+├── captions/                           # Caption + hashtags + opening
+│   └── 2026-09-21/
+│       └── captions.txt
+├── covers/                             # Cover PNG dari Canva export
+│   └── 2026-09-21/
+├── ready_to_post/                      # Video final (cover + video)
+│   └── 2026-09-21/
+└── recap_2026-09-21.csv                # Recap CSV untuk Google Sheets
 ```
 
 ---
@@ -289,44 +237,36 @@ pytest tests/
 
 ```
 SCRAPING-CONTENT-X/
-  AGENTS.md
-  README.md
-  requirements.txt
-  .env.example
-  .gitignore
-  conftest.py
-  main.py
-  web_ui.py
-  docs/
-    USAGE.md
-    FAQ.md
-  OUTPUT-X/
-  specs/
-    x-video-scraper/
-    web-ui/
-    video-downloader/
-  src/
-    __init__.py
-    browser.py
-    config.py
-    downloader.py
-    extractor.py
-    models.py
-    scraper.py
-    web/
-      __init__.py
-      app.py
-      schemas.py
-      jobs.py
-      reports.py
-      templates/
-        index.html
-      static/
-        app.js
-        styles.css
-  standards/
-  tests/
-    test_extractor.py
-    test_downloader.py
-    test_web_schemas.py
+├── AGENTS.md
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── conftest.py
+├── main.py
+├── web_ui.py
+├── generate-content/
+│   ├── generate_covers_csv.py    # Hook + headline CSV (Canva)
+│   ├── generate_captions.py      # Caption + hashtags + opening
+│   ├── stitch_covers.py          # Cover + video stitching
+│   └── export_recap_csv.py       # Recap CSV (Google Sheets)
+├── docs/
+│   ├── CLI.md
+│   ├── USAGE.md
+│   ├── SETUP.md
+│   ├── FAQ.md
+│   └── GENERATE_CONTENT_GUIDE.md
+├── OUTPUT-X/
+├── specs/
+├── src/
+│   ├── __init__.py
+│   ├── browser.py
+│   ├── config.py
+│   ├── downloader.py
+│   ├── extractor.py
+│   ├── models.py
+│   ├── scraper.py
+│   └── web/
+├── standards/
+└── tests/
 ```

@@ -28,6 +28,7 @@ async def init_browser_context(
         viewport={"width": BROWSER_VIEWPORT_WIDTH, "height": BROWSER_VIEWPORT_HEIGHT},
         user_agent=BROWSER_USER_AGENT,
         locale=BROWSER_LOCALE,
+        color_scheme="dark",
     )
 
     cookies: list[dict] = []

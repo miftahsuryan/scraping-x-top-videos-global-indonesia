@@ -55,6 +55,8 @@ EXPLORE_LIMIT: int = 15
 EXPLORE_MIN_FAVES: int = 50
 EXPLORE_SINCE_DAYS: int = 7
 
+DEDUP_MAX_AGE_DAYS: int = 7
+
 DEFAULT_KEYWORDS_ID: dict[str, list[str]] = {
     "engagement": [
         "heboh", "geger", "gempar", "syok", "kaget",

@@ -7,6 +7,7 @@ from src.downloader import (
     _should_skip,
     download_path_for,
     extract_quality_score,
+    photo_path_for,
     resolve_tweet_id,
     select_best_quality,
 )
@@ -60,7 +61,14 @@ def test_select_best_quality_empty():
 
 def test_download_path_for():
     path = download_path_for("1234567890", "2026-09-20")
-    assert path == Path("OUTPUT-X/downloads/2026-09-20/tweet_1234567890.mp4")
+    assert path == Path("OUTPUT-X/downloads/2026-09-20/videos/1234567890/video.mp4")
+
+
+def test_photo_path_for():
+    path = photo_path_for("1234567890", "2026-09-20", 1)
+    assert path == Path("OUTPUT-X/downloads/2026-09-20/photos/1234567890/photo_1.jpg")
+    path2 = photo_path_for("1234567890", "2026-09-20", 3)
+    assert path2 == Path("OUTPUT-X/downloads/2026-09-20/photos/1234567890/photo_3.jpg")
 
 
 def test_should_skip_existing_download(tmp_path):
@@ -78,6 +86,20 @@ def test_should_skip_with_existing_file(tmp_path):
     existing_file.write_bytes(b"fake video data")
     tweet = {"download_path": str(existing_file)}
     assert _should_skip(tweet) is True
+
+
+def test_should_skip_with_photo_paths(tmp_path):
+    photo1 = tmp_path / "photo1.jpg"
+    photo1.write_bytes(b"fake photo data")
+    photo2 = tmp_path / "photo2.jpg"
+    photo2.write_bytes(b"fake photo data")
+    tweet = {"photo_paths": [str(photo1), str(photo2)]}
+    assert _should_skip(tweet) is True
+
+
+def test_should_skip_with_missing_photo_paths(tmp_path):
+    tweet = {"photo_paths": [str(tmp_path / "missing.jpg")]}
+    assert _should_skip(tweet) is False
 
 
 def test_parse_download_links_with_mp4():
@@ -149,6 +171,10 @@ def test_video_tweet_model_backward_compat():
         engagement={"likes": 0, "views": 0, "reposts": 0, "replies": 0, "total_score": 0},
     )
     assert tweet.download_path is None
+    assert tweet.media_type == "none"
+    assert tweet.photo_urls == []
+    assert tweet.photo_paths == []
+    assert tweet.content == ""
 
 
 def test_video_tweet_model_with_download():
@@ -157,6 +183,20 @@ def test_video_tweet_model_with_download():
     tweet = VideoTweet(
         tweet_url="https://x.com/user/status/123",
         engagement={"likes": 0, "views": 0, "reposts": 0, "replies": 0, "total_score": 0},
-        download_path="OUTPUT-X/downloads/2026-09-20/tweet_123.mp4",
+        download_path="OUTPUT-X/downloads/2026-09-20/videos/tweet_123.mp4",
     )
-    assert tweet.download_path == "OUTPUT-X/downloads/2026-09-20/tweet_123.mp4"
+    assert tweet.download_path == "OUTPUT-X/downloads/2026-09-20/videos/tweet_123.mp4"
+
+
+def test_video_tweet_model_photo():
+    from src.models import VideoTweet
+
+    tweet = VideoTweet(
+        tweet_url="https://x.com/user/status/123",
+        media_type="photo",
+        photo_urls=["https://pbs.twimg.com/media/abc.jpg", "https://pbs.twimg.com/media/def.jpg"],
+        engagement={"likes": 0, "views": 0, "reposts": 0, "replies": 0, "total_score": 0},
+    )
+    assert tweet.media_type == "photo"
+    assert len(tweet.photo_urls) == 2
+    assert tweet.photo_paths == []

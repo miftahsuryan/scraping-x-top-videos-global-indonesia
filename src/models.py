@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -13,8 +15,15 @@ class EngagementMetrics(BaseModel):
 
 class VideoTweet(BaseModel):
     tweet_url: str = Field(..., description="Link permanen URL dari tweet")
+    media_type: Literal["video", "photo", "none"] = Field(
+        default="none",
+        description="Tipe media utama tweet, dipakai untuk routing ke pipeline video atau photo",
+    )
     video_url: str | None = Field(
         default=None, description="Direct URL file video / stream jika terdeteksi"
+    )
+    photo_urls: list[str] = Field(
+        default_factory=list, description="Direct URL foto dari tweet (semua foto carousel)"
     )
     caption: str = Field(
         default="", description="Teks atau caption utama dari tweet"
@@ -35,6 +44,12 @@ class VideoTweet(BaseModel):
     )
     download_path: str | None = Field(
         default=None, description="Path file video MP4 hasil download relatif ke OUTPUT-X"
+    )
+    photo_paths: list[str] = Field(
+        default_factory=list, description="Path file foto JPG hasil download relatif ke OUTPUT-X"
+    )
+    content: str = Field(
+        default="", description="Deskripsi detail konten foto oleh AI (hanya untuk photo tweets)"
     )
 
 

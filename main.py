@@ -14,6 +14,7 @@ except ImportError as exc:
 from src.browser import init_browser_context
 from src.config import (
     CATEGORIES,
+    DEDUP_MAX_AGE_DAYS,
     DEFAULT_KEYWORDS_GL,
     DEFAULT_KEYWORDS_ID,
     EXPLORE_LIMIT,
@@ -28,7 +29,7 @@ from src.config import (
 )
 from src.downloader import run_downloader
 from src.models import ScrapeReport
-from src.scraper import scrape_explore_for_you, scrape_top_videos
+from src.scraper import load_recent_tweet_ids, scrape_explore_for_you, scrape_top_videos
 
 
 def get_since_date(period: str) -> str:
@@ -84,9 +85,38 @@ def get_merged_keywords(category: str, locale: str, custom_id: list[str], custom
     return custom + default
 
 
-def write_report(filepath: Path, report: ScrapeReport) -> None:
+def append_report(filepath: Path, report: ScrapeReport) -> None:
+    """Append new tweets to existing report, update photo_urls for duplicates."""
+    existing_tweets: list[dict] = []
+    if filepath.exists():
+        data = json.loads(filepath.read_text(encoding="utf-8"))
+        existing_tweets = data.get("tweets", [])
+
+    existing_by_url = {t.get("tweet_url"): t for t in existing_tweets}
+
+    updated = 0
+    added = 0
+    for new_tweet in report.tweets:
+        new_data = new_tweet.model_dump()
+        existing = existing_by_url.get(new_tweet.tweet_url)
+        if existing:
+            if new_data.get("photo_urls"):
+                existing["photo_urls"] = new_data["photo_urls"]
+                existing["media_type"] = new_data.get("media_type", existing.get("media_type", "video"))
+                updated += 1
+        else:
+            existing_tweets.append(new_data)
+            added += 1
+
+    report.total_items = len(existing_tweets)
+
+    out = report.model_dump()
+    out["tweets"] = existing_tweets
+
+    print(f"  Merge: {updated} updated, {added} new, {len(existing_tweets)} total")
+
     with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(report.model_dump(), f, ensure_ascii=False, indent=2)
+        json.dump(out, f, ensure_ascii=False, indent=2)
 
 
 async def run_scraper(
@@ -109,6 +139,9 @@ async def run_scraper(
     all_results: list[dict] = []
     total_tweets = 0
 
+    existing_ids = load_recent_tweet_ids(days=DEDUP_MAX_AGE_DAYS)
+    print(f"Found {len(existing_ids)} existing tweet IDs from last {DEDUP_MAX_AGE_DAYS} days")
+
     async with async_playwright() as p:
         browser, context = await init_browser_context(p, headless=headless)
         page = await context.new_page()
@@ -130,7 +163,7 @@ async def run_scraper(
                     query = get_query(category, locale, keywords, period)
                     print(f"  Query: {query}")
 
-                    tweets = await scrape_top_videos(page, query, limit=limit, max_scrolls=MAX_SCROLLS)
+                    tweets = await scrape_top_videos(page, query, limit=limit, max_scrolls=MAX_SCROLLS, exclude_ids=existing_ids)
                     print(f"  Scraped: {len(tweets)} tweets")
 
                     tweets.sort(key=lambda t: t.engagement.total_score, reverse=True)
@@ -151,7 +184,7 @@ async def run_scraper(
                     folder.mkdir(parents=True, exist_ok=True)
                     filename = f"{date_label}.json"
                     filepath = folder / filename
-                    write_report(filepath, report)
+                    append_report(filepath, report)
 
                     total_tweets += len(top_tweets)
                     print(f"  → {len(top_tweets)} tweets saved to {filepath}")
@@ -205,8 +238,12 @@ async def run_explore_scraper(
         since_date = date.today().strftime("%Y-%m-%d")  # noqa: DTZ011
         date_label = date.today().strftime("%Y-%m-%d")  # noqa: DTZ011
 
+        historical_ids = load_recent_tweet_ids(days=DEDUP_MAX_AGE_DAYS)
+        print(f"[Dedup] Found {len(historical_ids)} previously scraped tweets from last {DEDUP_MAX_AGE_DAYS} days")
+
         tweets = await scrape_explore_for_you(
-            page, limit=limit, max_scrolls=EXPLORE_MAX_SCROLLS, date_label=date_label
+            page, limit=limit, max_scrolls=EXPLORE_MAX_SCROLLS, date_label=date_label,
+            exclude_ids=historical_ids,
         )
         print(f"  Scraped: {len(tweets)} tweets")
 
@@ -229,7 +266,7 @@ async def run_explore_scraper(
         folder.mkdir(parents=True, exist_ok=True)
         filename = f"{date_label}.json"
         filepath = folder / filename
-        write_report(filepath, report)
+        append_report(filepath, report)
 
         total_tweets += len(top_tweets)
         print(f"  → {len(top_tweets)} tweets saved to {filepath}")
@@ -319,6 +356,12 @@ def main():
         default=None,
         help="Path spesifik file report JSON (untuk digunakan dengan --download)",
     )
+    parser.add_argument(
+        "--max-age-days",
+        type=int,
+        default=DEDUP_MAX_AGE_DAYS,
+        help=f"Skip download untuk tweet yang sudah di-scrape dalam N hari terakhir (default: {DEDUP_MAX_AGE_DAYS})",
+    )
 
     args = parser.parse_args()
     headless = HEADLESS and not args.no_headless
@@ -327,6 +370,7 @@ def main():
         asyncio.run(run_downloader(
             report_path=args.report,
             headless=headless,
+            max_age_days=args.max_age_days,
         ))
         return
 

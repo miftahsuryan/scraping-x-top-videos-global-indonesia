@@ -150,55 +150,39 @@ python main.py --mode search --category news,economic --keywords-id "berita,ekon
 
 ## Output Structure
 
-### Explore Mode
 ```
 OUTPUT-X/
-  index.json
-  explore/
-    explore_1day_2026-09-18.json
-    explore_3days_2026-09-18.json
-    explore_weekly_2026-W38.json
-    explore_monthly_2026-09.json
-  downloads/
-    2026-09-18/
-      tweet_2101516770255270041.mp4
-```
-
-### Search Mode
-```
-OUTPUT-X/
-  index.json
-  indonesia/
-    engagement/
-      engagement_3days_2026-09-14.json
-      engagement_weekly_2026-W38.json
-      engagement_monthly_2026-09.json
-    news/
-    economic/
-    social/
-    technology/
-    research/
-    business/
-    social_media/
-  global/
-    engagement/
-    news/
-    economic/
-    social/
-    technology/
-    research/
-    business/
-    social_media/
+├── index.json                          # Master index
+├── explore/                            # Report JSON per tanggal
+│   └── 2026-09-21.json
+├── screenshots/                        # Screenshot per tanggal
+│   └── 2026-09-21/
+├── downloads/                          # Video/image download
+│   └── 2026-09-21/
+│       ├── tweet_ID.mp4
+│       └── tweet_ID.jpg
+├── bulk_create/                        # CSV untuk Canva Bulk Create
+│   └── 2026-09-21/
+│       └── bulk_create.csv
+├── captions/                           # Caption + hashtags + opening
+│   └── 2026-09-21/
+│       └── captions.txt
+├── covers/                             # Cover PNG dari Canva export
+│   └── 2026-09-21/
+├── ready_to_post/                      # Video final (cover + video)
+│   └── 2026-09-21/
+└── recap_2026-09-21.csv                # Recap CSV untuk Google Sheets
 ```
 
 ## Filename Format
 
-| Period | Filename | Contoh |
+| Tipe | Format | Contoh |
 |---|---|---|
-| 1day | `{prefix}_1day_{YYYY-MM-DD}.json` | `explore_1day_2026-09-18.json` |
-| 3days | `{prefix}_3days_{YYYY-MM-DD}.json` | `explore_3days_2026-09-18.json` |
-| weekly | `{prefix}_weekly_{YYYY-WWW}.json` | `explore_weekly_2026-W38.json` |
-| monthly | `{prefix}_monthly_{YYYY-MM}.json` | `explore_monthly_2026-09.json` |
+| Explore report | `YYYY-MM-DD.json` | `2026-09-21.json` |
+| Download | `tweet_{tweet_id}.mp4` | `tweet_2101325555010539820.mp4` |
+| Bulk CSV | `bulk_create.csv` | `bulk_create.csv` |
+| Captions | `captions.txt` | `captions.txt` |
+| Recap | `recap_YYYY-MM-DD.csv` | `recap_2026-09-21.csv` |
 
 ## Query Construction (Search Mode)
 
@@ -210,3 +194,43 @@ Query dibangun secara otomatis berdasarkan:
 Contoh:
 - Indonesia, 3days: `(heboh OR geger OR gempar) filter:media min_faves:500 since:2026-09-15 -is:retweet`
 - Global, weekly: `(went viral OR blew up OR buzzing) filter:media min_faves:1000 since:2026-09-15 -is:retweet`
+
+## Generate Content
+
+### Quick Recap (One Command)
+
+```bash
+python3 generate-content/generate_covers_csv.py \
+    --json OUTPUT-X/explore/2026-09-21.json \
+    --screenshots OUTPUT-X/screenshots/2026-09-21
+```
+
+### Full Pipeline
+
+```bash
+# Step 1: Generate CSV untuk Canva Bulk Create
+python3 generate-content/generate_covers_csv.py \
+    --json OUTPUT-X/explore/2026-09-21.json \
+    --screenshots OUTPUT-X/screenshots/2026-09-21
+
+# Step 2: Upload CSV ke Canva → Edit → Bulk Create → Export PNG ke OUTPUT-X/covers/2026-09-21/
+
+# Step 3: Generate captions + hashtags + opening comment
+python3 generate-content/generate_captions.py \
+    --csv OUTPUT-X/bulk_create/2026-09-21/bulk_create.csv \
+    --screenshots OUTPUT-X/screenshots/2026-09-21
+
+# Step 4: Stitch cover + video
+python3 generate-content/stitch_covers.py \
+    --covers OUTPUT-X/covers/2026-09-21 \
+    --downloads OUTPUT-X/downloads/2026-09-21 \
+    --output OUTPUT-X/ready_to_post
+
+# Step 5: Export recap CSV untuk Google Sheets
+python3 generate-content/export_recap_csv.py \
+    --csv OUTPUT-X/bulk_create/2026-09-21/bulk_create.csv \
+    --captions OUTPUT-X/captions/2026-09-21/captions.txt \
+    --out OUTPUT-X/recap_2026-09-21.csv
+```
+
+Lihat [Generate Content Guide](GENERATE_CONTENT_GUIDE.md) untuk panduan lengkap.
